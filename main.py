@@ -19,6 +19,7 @@ ERROR_LIMIT = 500
 RECORDED_POSITIONS_LIMIT = 50
 FPS_LIMIT = 10
 CONTINUOUS_DETECTION = True
+NUMBER_OF_PREDICTIONS = 1
 
 # Create data directory if not exists
 if not os.path.exists("data"):
@@ -67,8 +68,17 @@ def render():
         recorded_positions.pop(0)
 
     for name, predictor in predictors.items():
-        predicted_point = predictor["function"](recorded_positions)
+        points = recorded_positions[:]
+        predicted_point = None
         
+        for _ in range(NUMBER_OF_PREDICTIONS):
+            predicted_point = predictor["function"](points)
+            if predicted_point:
+                if len(points) >= RECORDED_POSITIONS_LIMIT:
+                    points.pop(0)
+                points.append(predicted_point)
+                pygame.draw.circle(WINDOW, predictor["color"], predicted_point, 5)
+
         if (CONTINUOUS_DETECTION or has_mouse_moved) and last_predicted_points.get(name) is not None:
             error1, error2 = calculate_errors(last_predicted_points[name], mouse_pos)
             if error1 is not None and error2 is not None:
@@ -79,9 +89,6 @@ def render():
         
         if CONTINUOUS_DETECTION or has_mouse_moved:
             last_predicted_points[name] = predicted_point
-
-        if predicted_point:
-            pygame.draw.circle(WINDOW, predictor["color"], predicted_point, 5)
 
     for i in range(1, len(recorded_positions)):
         pygame.draw.line(WINDOW, POSITION_POINT_LINE_COLOR, recorded_positions[i-1], recorded_positions[i], 2)
@@ -101,7 +108,7 @@ def render_text():
         y_offset += TEXT_PADDING + text_surface.get_height()
 
 def handle_events():
-    global CONTINUOUS_DETECTION, FPS_LIMIT, RECORDED_POSITIONS_LIMIT
+    global CONTINUOUS_DETECTION, FPS_LIMIT, RECORDED_POSITIONS_LIMIT, NUMBER_OF_PREDICTIONS
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -125,6 +132,18 @@ def handle_events():
                 RECORDED_POSITIONS_LIMIT = min(RECORDED_POSITIONS_LIMIT + 5, 100)
             elif event.key == pygame.K_n:
                 RECORDED_POSITIONS_LIMIT = max(RECORDED_POSITIONS_LIMIT - 5, 5)
+            elif event.key == pygame.K_l:
+                NUMBER_OF_PREDICTIONS += 1
+            elif event.key == pygame.K_k:
+                NUMBER_OF_PREDICTIONS = max(1, NUMBER_OF_PREDICTIONS - 1)
+
+def update_caption():
+    caption_parts = [
+        f"FPS: {FPS_LIMIT}",
+        f"Cont: {CONTINUOUS_DETECTION}",
+        f"Pts Limit: {RECORDED_POSITIONS_LIMIT}",
+    ]
+    pygame.display.set_caption(" | ".join(filter(None, caption_parts)))
 
 def main():
     global CONTINUOUS_DETECTION, FPS_LIMIT, RECORDED_POSITIONS_LIMIT, last_predicted_points
@@ -139,6 +158,7 @@ def main():
 
     while True:
         handle_events()
+        update_caption()
 
         WINDOW.fill((0, 0, 0))
         pygame.draw.circle(WINDOW, DOT_COLOR, (WINDOW_SIZE[0] // 2, WINDOW_SIZE[1] // 2), 5)
