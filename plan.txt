@@ -1,5 +1,9 @@
 Compare math vs AI
 
+LEGEND
+- todo
+V done
+
 Math:
 - using (math1) formulas but enhanced with changable x size
 
@@ -9,8 +13,8 @@ AI:
 - output: 1 predicted (x,y) pair where mouse will be
 
 rating:
-- difference between predicted (x,y) and actual (x,y)
-  - either distance formula or (dx + dy)
+V difference between predicted (x,y) and actual (x,y)
+  V either distance formula or (dx + dy) 
 
 goals:
 - compare accuracy and speed of both methods (response time is important)
@@ -18,4 +22,5 @@ goals:
 - sub-path, so points between last input and predicted point 
 
 settings:
-- toggle continuous i.e. when mouse stops, either continue predicting or pause
+V toggle continuous i.e. when mouse stops, either continue predicting or pause
+- pass settings to main. IF empty, use defaults
