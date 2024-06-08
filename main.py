@@ -12,12 +12,17 @@ DOT_COLOR = (255, 255, 255)
 CENTER_POINT_COLOR = (255, 255, 255)
 POSITION_POINT_COLOR = (255, 255, 255)
 POSITION_POINT_LINE_COLOR = (255, 255, 255)
+TEXT_PADDING = 20
 MIN_FPS = 1
 MAX_FPS = 120
 ERROR_LIMIT = 500
 RECORDED_POSITIONS_LIMIT = 50
 FPS_LIMIT = 10
-CONTINUOUS_DETECTION = False
+CONTINUOUS_DETECTION = True
+
+# Create data directory if not exists
+if not os.path.exists("data"):
+    os.makedirs("data")
 
 # Initialize variables
 WINDOW = pygame.display.set_mode(WINDOW_SIZE)
@@ -28,13 +33,13 @@ predictors = {
         "function": predictor_alpha,
         "color": PREDICTOR_COLORS["alpha"],
         "errors": [],
-        "file": open("errors_alpha.txt", "w")
+        "file": open(os.path.join("data", "errors_alpha.txt"), "w")
     },
     "beta": {
         "function": predictor_beta,
         "color": PREDICTOR_COLORS["beta"],
         "errors": [],
-        "file": open("errors_beta.txt", "w")
+        "file": open(os.path.join("data", "errors_beta.txt"), "w")
     }
     # Add additional predictors here
 }
@@ -83,6 +88,44 @@ def render():
     for pos in recorded_positions:
         pygame.draw.circle(WINDOW, POSITION_POINT_COLOR, pos, 5)
 
+    render_text()
+
+def render_text():
+    font = pygame.font.Font(None, 36)
+    y_offset = TEXT_PADDING
+
+    for name, predictor in predictors.items():
+        avg_error = sum(e[0] for e in predictor["errors"]) / len(predictor["errors"]) if predictor["errors"] else 0
+        text_surface = font.render(f"{name}: {avg_error:.2f}", True, predictor["color"])
+        WINDOW.blit(text_surface, (TEXT_PADDING, y_offset))
+        y_offset += TEXT_PADDING + text_surface.get_height()
+
+def handle_events():
+    global CONTINUOUS_DETECTION, FPS_LIMIT, RECORDED_POSITIONS_LIMIT
+
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            for predictor in predictors.values():
+                predictor["file"].close()
+            pygame.quit()
+            quit()
+        elif event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_ESCAPE:
+                for predictor in predictors.values():
+                    predictor["file"].close()
+                pygame.quit()
+                quit()
+            elif event.key == pygame.K_s:
+                CONTINUOUS_DETECTION = not CONTINUOUS_DETECTION
+            elif event.key == pygame.K_PERIOD:
+                FPS_LIMIT = min(FPS_LIMIT + 5, MAX_FPS)
+            elif event.key == pygame.K_COMMA:
+                FPS_LIMIT = max(FPS_LIMIT - 5, MIN_FPS)
+            elif event.key == pygame.K_m:
+                RECORDED_POSITIONS_LIMIT = min(RECORDED_POSITIONS_LIMIT + 5, 100)
+            elif event.key == pygame.K_n:
+                RECORDED_POSITIONS_LIMIT = max(RECORDED_POSITIONS_LIMIT - 5, 5)
+
 def main():
     global CONTINUOUS_DETECTION, FPS_LIMIT, RECORDED_POSITIONS_LIMIT, last_predicted_points
 
@@ -95,28 +138,7 @@ def main():
         predictor["file"].write(settings_str + f" PREDICTOR_COLOR: {predictor['color']}\n")
 
     while True:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                for predictor in predictors.values():
-                    predictor["file"].close()
-                pygame.quit()
-                quit()
-            elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
-                    for predictor in predictors.values():
-                        predictor["file"].close()
-                    pygame.quit()
-                    quit()
-                elif event.key == pygame.K_s:
-                    CONTINUOUS_DETECTION = not CONTINUOUS_DETECTION
-                elif event.key == pygame.K_PERIOD:
-                    FPS_LIMIT = min(FPS_LIMIT + 5, MAX_FPS)
-                elif event.key == pygame.K_COMMA:
-                    FPS_LIMIT = max(FPS_LIMIT - 5, MIN_FPS)
-                elif event.key == pygame.K_m:
-                    RECORDED_POSITIONS_LIMIT = min(RECORDED_POSITIONS_LIMIT + 5, 100)
-                elif event.key == pygame.K_n:
-                    RECORDED_POSITIONS_LIMIT = max(RECORDED_POSITIONS_LIMIT - 5, 5)
+        handle_events()
 
         WINDOW.fill((0, 0, 0))
         pygame.draw.circle(WINDOW, DOT_COLOR, (WINDOW_SIZE[0] // 2, WINDOW_SIZE[1] // 2), 5)
