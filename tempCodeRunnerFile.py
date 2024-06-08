@@ -13,9 +13,8 @@ CENTER_POINT_COLOR = (255, 255, 255)
 POSITION_POINT_COLOR = (255, 255, 255)
 POSITION_POINT_LINE_COLOR = (255, 255, 255)
 TEXT_PADDING = 20
-FPS_MIN = 1
-FPS_MAX = 60
-FPS_STEP = 1
+MIN_FPS = 1
+MAX_FPS = 120
 ERROR_LIMIT = 500
 RECORDED_POSITIONS_LIMIT = 50
 FPS_LIMIT = 10
@@ -171,13 +170,13 @@ def handle_events():
             elif event.key == pygame.K_o:
                 DRAW_CURRENT_PREDICTIONS = not DRAW_CURRENT_PREDICTIONS
             elif event.key == pygame.K_PERIOD:
-                FPS_LIMIT = min(FPS_LIMIT + FPS_STEP, FPS_MAX)
+                FPS_LIMIT = min(FPS_LIMIT + 5, MAX_FPS)
             elif event.key == pygame.K_COMMA:
-                FPS_LIMIT = max(FPS_LIMIT - FPS_STEP, FPS_MIN)
+                FPS_LIMIT = max(FPS_LIMIT - 5, MIN_FPS)
             elif event.key == pygame.K_m:
-                RECORDED_POSITIONS_LIMIT = min(RECORDED_POSITIONS_LIMIT + FPS_STEP, 100)
+                RECORDED_POSITIONS_LIMIT = min(RECORDED_POSITIONS_LIMIT + 5, 100)
             elif event.key == pygame.K_n:
-                RECORDED_POSITIONS_LIMIT = max(RECORDED_POSITIONS_LIMIT - FPS_STEP, FPS_STEP)
+                RECORDED_POSITIONS_LIMIT = max(RECORDED_POSITIONS_LIMIT - 5, 5)
             elif event.key == pygame.K_l:
                 NUMBER_OF_PREDICTIONS += 1
             elif event.key == pygame.K_k:
