@@ -25,6 +25,7 @@ DRAW_PAST_PREDICTIONS = True
 
 past_predictions = {name: [] for name in PREDICTOR_COLORS.keys()}
 update_counters = {name: 0 for name in PREDICTOR_COLORS.keys()}
+space_bar_pressed = False
 
 # Create data directory if not exists
 if not os.path.exists("data"):
@@ -34,7 +35,7 @@ if not os.path.exists("data"):
 WINDOW = pygame.display.set_mode(WINDOW_SIZE)
 pygame.display.set_caption("Center point")
 recorded_positions = []
-past_predictions = {name: [] for name in PREDICTOR_COLORS.keys()}
+last_predicted_points = {}
 predictors = {
     "alpha": {
         "function": predictor_alpha,
@@ -60,14 +61,14 @@ def calculate_errors(predicted, actual):
     error2 = abs(predicted[0] - actual[0]) + abs(predicted[1] - actual[1])
     return error1, error2
 
-def render():
+def update_simulation():
     global recorded_positions, last_predicted_points, predictors, past_predictions, update_counters
 
     mouse_pos = pygame.mouse.get_pos()
     mouse_positions_file.write(f"{mouse_pos[0]}, {mouse_pos[1]}\n")
     has_mouse_moved = mouse_pos != recorded_positions[-1] if recorded_positions else False
 
-    if CONTINUOUS_DETECTION or has_mouse_moved:
+    if space_bar_pressed and (CONTINUOUS_DETECTION or has_mouse_moved):
         recorded_positions.append(mouse_pos)
     else:
         if not recorded_positions:
@@ -87,19 +88,17 @@ def render():
                     points.pop(0)
                 points.append(predicted_point)
                 predicted_points.append(predicted_point)
-                if DRAW_CURRENT_PREDICTIONS:
-                    pygame.draw.circle(WINDOW, predictor["color"], predicted_point, 5)
 
-        if (CONTINUOUS_DETECTION or has_mouse_moved):
+        if space_bar_pressed and (CONTINUOUS_DETECTION or has_mouse_moved):
             update_counters[name] += 1
             if len(past_predictions[name]) > NUMBER_OF_PREDICTIONS:
-                        past_predictions[name] = past_predictions[name][-NUMBER_OF_PREDICTIONS:]
+                past_predictions[name] = past_predictions[name][-NUMBER_OF_PREDICTIONS:]
             if update_counters[name] >= NUMBER_OF_PREDICTIONS:
                 if DRAW_PAST_PREDICTIONS:
                     past_predictions[name].append(predicted_points)
                 update_counters[name] = 0
 
-        if (CONTINUOUS_DETECTION or has_mouse_moved) and last_predicted_points.get(name) is not None:
+        if space_bar_pressed and (CONTINUOUS_DETECTION or has_mouse_moved) and last_predicted_points.get(name) is not None:
             error1, error2 = calculate_errors(last_predicted_points[name], mouse_pos)
             if error1 is not None and error2 is not None:
                 predictor["errors"].append((error1, error2))
@@ -107,25 +106,38 @@ def render():
                     predictor["errors"].pop(0)
                 predictor["file"].write(f"{error1}, {error2}\n")
 
-        if CONTINUOUS_DETECTION or has_mouse_moved:
+        if space_bar_pressed and (CONTINUOUS_DETECTION or has_mouse_moved):
             last_predicted_points[name] = predicted_point
+
+def draw_graphics():
+    WINDOW.fill((0, 0, 0))
+    pygame.draw.circle(WINDOW, DOT_COLOR, (WINDOW_SIZE[0] // 2, WINDOW_SIZE[1] // 2), 5)
 
     for i in range(1, len(recorded_positions)):
         pygame.draw.line(WINDOW, POSITION_POINT_LINE_COLOR, recorded_positions[i-1], recorded_positions[i], 2)
     for pos in recorded_positions:
         pygame.draw.circle(WINDOW, POSITION_POINT_COLOR, pos, 5)
 
-    if DRAW_PAST_PREDICTIONS:
-        render_past_predictions()
-    render_text()
-
-def render_past_predictions():
     for name, prediction_set in past_predictions.items():
         color = predictors[name]["color"]
         faded_color = (color[0] // 2, color[1] // 2, color[2] // 2)  # 50% opacity
         for predictions in prediction_set:
             for point in predictions:
                 pygame.draw.circle(WINDOW, faded_color, point, 5)
+
+    for name, predictor in predictors.items():
+        if DRAW_CURRENT_PREDICTIONS:
+            points = recorded_positions[:]
+            for _ in range(NUMBER_OF_PREDICTIONS):
+                predicted_point = predictor["function"](points)
+                if predicted_point:
+                    pygame.draw.circle(WINDOW, predictor["color"], predicted_point, 5)
+                    if len(points) >= RECORDED_POSITIONS_LIMIT:
+                        points.pop(0)
+                    points.append(predicted_point)
+
+    render_text()
+    pygame.display.update()
 
 def render_text():
     font = pygame.font.Font(None, 36)
@@ -138,7 +150,7 @@ def render_text():
         y_offset += TEXT_PADDING + text_surface.get_height()
 
 def handle_events():
-    global CONTINUOUS_DETECTION, FPS_LIMIT, RECORDED_POSITIONS_LIMIT, NUMBER_OF_PREDICTIONS, DRAW_PAST_PREDICTIONS, DRAW_CURRENT_PREDICTIONS
+    global CONTINUOUS_DETECTION, FPS_LIMIT, RECORDED_POSITIONS_LIMIT, NUMBER_OF_PREDICTIONS, DRAW_PAST_PREDICTIONS, DRAW_CURRENT_PREDICTIONS, space_bar_pressed
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -172,6 +184,11 @@ def handle_events():
                 NUMBER_OF_PREDICTIONS += 1
             elif event.key == pygame.K_k:
                 NUMBER_OF_PREDICTIONS = max(1, NUMBER_OF_PREDICTIONS - 1)
+            elif event.key == pygame.K_SPACE:
+                space_bar_pressed = True
+        elif event.type == pygame.KEYUP:
+            if event.key == pygame.K_SPACE:
+                space_bar_pressed = False
 
 def update_caption():
     caption_parts = [
@@ -184,10 +201,11 @@ def update_caption():
     pygame.display.set_caption(" | ".join(filter(None, caption_parts)))
 
 def main():
-    global CONTINUOUS_DETECTION, FPS_LIMIT, RECORDED_POSITIONS_LIMIT, last_predicted_points
+    global CONTINUOUS_DETECTION, FPS_LIMIT, RECORDED_POSITIONS_LIMIT, last_predicted_points, space_bar_pressed
 
     clock = pygame.time.Clock()
     last_predicted_points = {}
+    space_bar_pressed = False
 
     # Write settings to settings file
     with open(os.path.join("data", "settings.txt"), "w") as settings_file:
@@ -199,11 +217,8 @@ def main():
     while True:
         handle_events()
         update_caption()
-
-        WINDOW.fill((0, 0, 0))
-        pygame.draw.circle(WINDOW, DOT_COLOR, (WINDOW_SIZE[0] // 2, WINDOW_SIZE[1] // 2), 5)
-        render()
-        pygame.display.update()
+        update_simulation()
+        draw_graphics()
         clock.tick(FPS_LIMIT)
 
 if __name__ == "__main__":
