@@ -1,0 +1,21 @@
+Compare math vs AI
+
+Math:
+- using (math1) formulas but enhanced with changable x size
+
+AI:
+- train model based on user moving mouse around
+- input: 10 or more (x,y) pairs, where mouse have been so far
+- output: 1 predicted (x,y) pair where mouse will be
+
+rating:
+- difference between predicted (x,y) and actual (x,y)
+  - either distance formula or (dx + dy)
+
+goals:
+- compare accuracy and speed of both methods (response time is important)
+- path predictor by putting predicted point into input 
+- sub-path, so points between last input and predicted point 
+
+settings:
+- toggle continuous i.e. when mouse stops, either continue predicting or pause
