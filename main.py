@@ -3,7 +3,7 @@ import math
 import os
 import numpy as np
 import torch
-from predictors import predictor_delta, PREDICTOR_COLORS
+from predictors import predictor_delta, PREDICTOR_COLORS, get_random_color
 from ml_model import MousePredictor, load_model
 import argparse
 
@@ -32,8 +32,8 @@ DRAW_PAST_PREDICTIONS = True
 DRAW_TRAJECTORY = True
 SPACE_ONLY_MOVEMENTS = False
 
-past_predictions = {name: [] for name in PREDICTOR_COLORS.keys()}
-update_counters = {name: 0 for name in PREDICTOR_COLORS.keys()}
+past_predictions = {}
+update_counters = {}
 space_bar_pressed = False
 
 # Create data directory if not exists
@@ -54,21 +54,29 @@ args = parser.parse_args()
 models = {}
 for file in os.listdir(args.models_path):
     if file.endswith('.pth'):
-        seq_length = int(file.split('_')[1].split('.')[0])
+        parts = file.split('_')
+        seq_length = int(parts[1])
+        model_type = parts[2].split('.')[0]
         model = MousePredictor(seq_length)
         model_path = os.path.join(args.models_path, file)
         model = load_model(model, model_path)
-        models[seq_length] = model
+        models[(seq_length, model_type)] = model
 
 # Update predictors to use multiple models
 predictors = {}
-for seq_length, model in models.items():
-    predictors[f'delta_{seq_length}'] = {
+for (seq_length, model_type), model in models.items():
+    color_key = f'delta_{seq_length}'
+    color = PREDICTOR_COLORS.get(color_key, get_random_color())
+    predictor_key = f'delta_{seq_length}_{model_type}'
+    predictors[predictor_key] = {
         "function": lambda points, model=model, seq_length=seq_length: predictor_delta(points, model, seq_length) if model else None,
-        "color": PREDICTOR_COLORS[f'delta_{seq_length}'],
+        "color": color,
         "errors": [],
-        "file": open(os.path.join("data", f"errors_delta_{seq_length}.txt"), "w")
+        "file": open(os.path.join("data", f"errors_{predictor_key}.txt"), "w")
     }
+    past_predictions[predictor_key] = []
+    update_counters[predictor_key] = 0
+    print(f"Loaded model: Sequence Length: {seq_length}, Type: {model_type}, Color: {color}")
 
 mouse_positions_file = open(os.path.join("data", "mouse_positions.txt"), "w")
 
@@ -90,8 +98,6 @@ def update_simulation():
     if (CONTINUOUS_DETECTION or has_mouse_moved) and space_bar_pressed:
         mouse_positions_file.write(f"{mouse_pos[0]}, {mouse_pos[1]}\n")
         mouse_positions_counter += 1
-        if mouse_positions_counter % 100 == 0:
-            print(f"Mouse positions: {mouse_positions_counter}")
 
     if space_bar_pressed and (CONTINUOUS_DETECTION or has_mouse_moved):
         recorded_positions.append(mouse_pos)
@@ -228,7 +234,8 @@ def update_caption():
         f"Cont: {CONTINUOUS_DETECTION}",
         f"Pts Limit: {RECORDED_POSITIONS_LIMIT}",
         f"Predictions: {NUMBER_OF_PREDICTIONS}",
-        f"Draw Past: {DRAW_PAST_PREDICTIONS}"
+        f"Draw Past: {DRAW_PAST_PREDICTIONS}",
+        f"Mouse pos counter: {mouse_positions_counter}"
     ]
     pygame.display.set_caption(" | ".join(filter(None, caption_parts)))
 
