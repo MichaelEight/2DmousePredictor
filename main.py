@@ -3,10 +3,8 @@ import math
 import os
 import numpy as np
 import torch
-import torch.nn as nn
-import torch.optim as optim
-from predictors import predictor_alpha, predictor_beta, predictor_gamma, predictor_delta, PREDICTOR_COLORS
-from ml_model import MousePredictor, train_model, save_model, load_model, predict
+from predictors import predictor_delta, PREDICTOR_COLORS
+from ml_model import MousePredictor, load_model
 
 # Initialize Pygame
 pygame.init()
@@ -30,12 +28,11 @@ CONTINUOUS_DETECTION = False
 DRAW_CURRENT_PREDICTIONS = True
 DRAW_PAST_PREDICTIONS = True
 DRAW_TRAJECTORY = True
-TRAIN_EVERY_N_UPDATES = 50
+SPACE_ONLY_MOVEMENTS = False
 
 past_predictions = {name: [] for name in PREDICTOR_COLORS.keys()}
 update_counters = {name: 0 for name in PREDICTOR_COLORS.keys()}
 space_bar_pressed = False
-train_counter = 0
 
 # Create data directory if not exists
 if not os.path.exists("data"):
@@ -47,33 +44,17 @@ pygame.display.set_caption("Center point")
 recorded_positions = []
 last_predicted_points = {}
 
-# Initialize the model
+# Check if the model exists and load it, else set to None
 model = MousePredictor()
-criterion = nn.MSELoss()
-optimizer = optim.Adam(model.parameters(), lr=0.001)
-model = load_model(model)
+model_path = "mouse_predictor.pth"
+if os.path.exists(model_path):
+    model = load_model(model)
+else:
+    model = None
 
 predictors = {
-    "alpha": {
-        "function": predictor_alpha,
-        "color": PREDICTOR_COLORS["alpha"],
-        "errors": [],
-        "file": open(os.path.join("data", "errors_alpha.txt"), "w")
-    },
-    "beta": {
-        "function": predictor_beta,
-        "color": PREDICTOR_COLORS["beta"],
-        "errors": [],
-        "file": open(os.path.join("data", "errors_beta.txt"), "w")
-    },
-    "gamma": {
-        "function": predictor_gamma,
-        "color": PREDICTOR_COLORS["gamma"],
-        "errors": [],
-        "file": open(os.path.join("data", "errors_gamma.txt"), "w")
-    },
     "delta": {
-        "function": lambda points: predictor_delta(points, model),
+        "function": lambda points: predictor_delta(points, model) if model else None,
         "color": PREDICTOR_COLORS["delta"],
         "errors": [],
         "file": open(os.path.join("data", "errors_delta.txt"), "w")
@@ -89,12 +70,19 @@ def calculate_errors(predicted, actual):
     error2 = abs(predicted[0] - actual[0]) + abs(predicted[1] - actual[1])
     return error1, error2
 
+mouse_positions_counter = 0
+
 def update_simulation():
-    global recorded_positions, last_predicted_points, predictors, past_predictions, update_counters, train_counter, model
+    global recorded_positions, last_predicted_points, predictors, past_predictions, update_counters, mouse_positions_counter
 
     mouse_pos = pygame.mouse.get_pos()
-    mouse_positions_file.write(f"{mouse_pos[0]}, {mouse_pos[1]}\n")
     has_mouse_moved = mouse_pos != recorded_positions[-1] if recorded_positions else False
+    
+    if ((CONTINUOUS_DETECTION and has_mouse_moved) or not SPACE_ONLY_MOVEMENTS) and space_bar_pressed:
+        mouse_positions_file.write(f"{mouse_pos[0]}, {mouse_pos[1]}\n")
+        mouse_positions_counter += 1
+        if mouse_positions_counter % 100 == 0:
+            print(f"Mouse positions: {mouse_positions_counter}")
 
     if space_bar_pressed and (CONTINUOUS_DETECTION or has_mouse_moved):
         recorded_positions.append(mouse_pos)
@@ -104,18 +92,6 @@ def update_simulation():
 
     if len(recorded_positions) > RECORDED_POSITIONS_LIMIT:
         recorded_positions.pop(0)
-
-    # Train the model every TRAIN_EVERY_N_UPDATES updates
-    if len(recorded_positions) >= 21 and train_counter % TRAIN_EVERY_N_UPDATES == 0:
-        input_data = np.array(recorded_positions[-21:-1]).flatten()
-        target_data = np.array(recorded_positions[-1])
-        input_tensor = torch.FloatTensor(input_data).unsqueeze(0)
-        target_tensor = torch.FloatTensor(target_data).unsqueeze(0)
-        loss = train_model(model, input_tensor, target_tensor, criterion, optimizer)
-        print(f"Training loss: {loss}")
-        save_model(model)
-
-    train_counter += 1
 
     for name, predictor in predictors.items():
         points = recorded_positions[:]
@@ -184,7 +160,6 @@ def draw_graphics():
     render_text()
     pygame.display.update()
 
-
 def render_text():
     font = pygame.font.Font(None, 36)
     y_offset = TEXT_PADDING
@@ -196,7 +171,7 @@ def render_text():
         y_offset += TEXT_PADDING + text_surface.get_height()
 
 def handle_events():
-    global CONTINUOUS_DETECTION, FPS_LIMIT, RECORDED_POSITIONS_LIMIT, NUMBER_OF_PREDICTIONS, DRAW_PAST_PREDICTIONS, DRAW_CURRENT_PREDICTIONS, space_bar_pressed, DRAW_TRAJECTORY
+    global CONTINUOUS_DETECTION, FPS_LIMIT, RECORDED_POSITIONS_LIMIT, NUMBER_OF_PREDICTIONS, DRAW_PAST_PREDICTIONS, DRAW_CURRENT_PREDICTIONS, space_bar_pressed, DRAW_TRAJECTORY, SPACE_ONLY_MOVEMENTS
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -235,7 +210,7 @@ def handle_events():
             elif event.key == pygame.K_SPACE:
                 space_bar_pressed = True
         elif event.type == pygame.KEYUP:
-            if event.key == pygame.K_SPACE:
+            if event.key == pygame.K_SPACE and SPACE_ONLY_MOVEMENTS:
                 space_bar_pressed = False
 
 def update_caption():
@@ -249,11 +224,15 @@ def update_caption():
     pygame.display.set_caption(" | ".join(filter(None, caption_parts)))
 
 def main():
-    global CONTINUOUS_DETECTION, FPS_LIMIT, RECORDED_POSITIONS_LIMIT, last_predicted_points, space_bar_pressed
+    global CONTINUOUS_DETECTION, FPS_LIMIT, RECORDED_POSITIONS_LIMIT, last_predicted_points, space_bar_pressed, SPACE_ONLY_MOVEMENTS
 
     clock = pygame.time.Clock()
     last_predicted_points = {}
-    space_bar_pressed = False
+
+    if SPACE_ONLY_MOVEMENTS:
+        space_bar_pressed = False
+    else:
+        space_bar_pressed = True
 
     # Write settings to settings file
     with open(os.path.join("data", "settings.txt"), "w") as settings_file:
