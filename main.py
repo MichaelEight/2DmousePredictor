@@ -24,6 +24,7 @@ CONTINUOUS_DETECTION = False
 NUMBER_OF_PREDICTIONS = 5
 DRAW_CURRENT_PREDICTIONS = True
 DRAW_PAST_PREDICTIONS = True
+DRAW_TRAJECTORY = True
 
 past_predictions = {name: [] for name in PREDICTOR_COLORS.keys()}
 update_counters = {name: 0 for name in PREDICTOR_COLORS.keys()}
@@ -113,6 +114,10 @@ def update_simulation():
         if space_bar_pressed and (CONTINUOUS_DETECTION or has_mouse_moved):
             last_predicted_points[name] = predicted_point
 
+def draw_trajectory(points, color):
+    for i in range(1, len(points)):
+        pygame.draw.line(WINDOW, color, points[i-1], points[i], 2)
+
 def draw_graphics():
     WINDOW.fill((0, 0, 0))
     pygame.draw.circle(WINDOW, DOT_COLOR, (WINDOW_SIZE[0] // 2, WINDOW_SIZE[1] // 2), 5)
@@ -122,26 +127,29 @@ def draw_graphics():
     for pos in recorded_positions:
         pygame.draw.circle(WINDOW, POSITION_POINT_COLOR, pos, 5)
 
-    for name, prediction_set in past_predictions.items():
-        color = predictors[name]["color"]
-        faded_color = (color[0] // 2, color[1] // 2, color[2] // 2)  # 50% opacity
-        for predictions in prediction_set:
-            for point in predictions:
-                pygame.draw.circle(WINDOW, faded_color, point, 5)
+    if DRAW_TRAJECTORY:
+        for name, prediction_set in past_predictions.items():
+            color = predictors[name]["color"]
+            faded_color = (color[0] // 2, color[1] // 2, color[2] // 2)  # 50% opacity
+            for predictions in prediction_set:
+                draw_trajectory(predictions, faded_color)
 
     for name, predictor in predictors.items():
         if DRAW_CURRENT_PREDICTIONS:
             points = recorded_positions[:]
+            predicted_points = []
             for _ in range(NUMBER_OF_PREDICTIONS):
                 predicted_point = predictor["function"](points)
                 if predicted_point:
-                    pygame.draw.circle(WINDOW, predictor["color"], predicted_point, 5)
+                    predicted_points.append(predicted_point)
                     if len(points) >= RECORDED_POSITIONS_LIMIT:
                         points.pop(0)
                     points.append(predicted_point)
+            draw_trajectory(predicted_points, predictor["color"])
 
     render_text()
     pygame.display.update()
+
 
 def render_text():
     font = pygame.font.Font(None, 36)
@@ -154,7 +162,7 @@ def render_text():
         y_offset += TEXT_PADDING + text_surface.get_height()
 
 def handle_events():
-    global CONTINUOUS_DETECTION, FPS_LIMIT, RECORDED_POSITIONS_LIMIT, NUMBER_OF_PREDICTIONS, DRAW_PAST_PREDICTIONS, DRAW_CURRENT_PREDICTIONS, space_bar_pressed
+    global CONTINUOUS_DETECTION, FPS_LIMIT, RECORDED_POSITIONS_LIMIT, NUMBER_OF_PREDICTIONS, DRAW_PAST_PREDICTIONS, DRAW_CURRENT_PREDICTIONS, space_bar_pressed, DRAW_TRAJECTORY
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -176,6 +184,8 @@ def handle_events():
                 DRAW_PAST_PREDICTIONS = not DRAW_PAST_PREDICTIONS
             elif event.key == pygame.K_o:
                 DRAW_CURRENT_PREDICTIONS = not DRAW_CURRENT_PREDICTIONS
+            elif event.key == pygame.K_t:
+                DRAW_TRAJECTORY = not DRAW_TRAJECTORY  # Toggle trajectory
             elif event.key == pygame.K_PERIOD:
                 FPS_LIMIT = min(FPS_LIMIT + FPS_STEP, FPS_MAX)
             elif event.key == pygame.K_COMMA:

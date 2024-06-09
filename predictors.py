@@ -63,7 +63,7 @@ def predictor_gamma(points):
     # Predict the next point
     last_position = positions[-1]
     next_velocity = avg_velocity + avg_acceleration + avg_jerk
-    next_position = last_position + next_velocity
+    next_position = last_position - next_velocity
     
     return tuple(next_position)
 
