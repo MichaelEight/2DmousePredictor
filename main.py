@@ -5,6 +5,7 @@ import numpy as np
 import torch
 from predictors import predictor_delta, PREDICTOR_COLORS, get_random_color
 from ml_model import MousePredictor, load_model
+from shape_classifier_model import ShapeClassifier, load_classifier, predict_shape
 import argparse
 
 # Initialize Pygame
@@ -35,6 +36,7 @@ SPACE_ONLY_MOVEMENTS = False
 past_predictions = {}
 update_counters = {}
 space_bar_pressed = False
+predicted_shape = "Not loaded"
 
 # Create data directory if not exists
 if not os.path.exists("data"):
@@ -86,6 +88,20 @@ for (seq_length, output_size, model_type, norm_flag), model in models.items():
     past_predictions[predictor_key] = []
     update_counters[predictor_key] = 0
     print(f"Loaded model: Sequence Length: {seq_length}, Output Size: {output_size}, Type: {model_type}, Normalized: {normalize}, Color: {color}")
+
+# Load the shape classifier model
+sequence_length = 20  # Adjust as needed based on your classifier training
+num_classes = 2  # Adjust as needed based on your classifier training
+
+classifier_model_path = 'trained_models/classifier_20_2_64R-32R_shapes_U.pth'  # Adjust the path accordingly
+try:
+    classifier_model, classifier_hidden_layers, class_map = load_classifier(sequence_length, num_classes, classifier_model_path)
+    classifier_loaded = True
+    print("Classifier model loaded successfully.")
+except FileNotFoundError:
+    classifier_loaded = False
+    print("Classifier model not found.")
+
 
 mouse_positions_file = open(os.path.join("data", "mouse_positions.txt"), "w")
 mouse_positions_counter = 0
@@ -189,11 +205,18 @@ def render_text():
     font = pygame.font.Font(None, 36)
     y_offset = TEXT_PADDING
 
+    # Display classifier status
+    classifier_status = f"Classifier: {predicted_shape}"
+    classifier_surface = font.render(classifier_status, True, (255, 255, 255))
+    WINDOW.blit(classifier_surface, (TEXT_PADDING, y_offset))
+    y_offset += TEXT_PADDING + classifier_surface.get_height()
+
     for name, predictor in predictors.items():
         avg_error = sum(e[0] for e in predictor["errors"]) / len(predictor["errors"]) if predictor["errors"] else 0
         text_surface = font.render(f"{name}: {avg_error:.2f}", True, predictor["color"])
         WINDOW.blit(text_surface, (TEXT_PADDING, y_offset))
         y_offset += TEXT_PADDING + text_surface.get_height()
+
 
 def handle_events():
     global CONTINUOUS_DETECTION, FPS_LIMIT, RECORDED_POSITIONS_LIMIT, NUMBER_OF_PREDICTIONS, DRAW_PAST_PREDICTIONS, DRAW_CURRENT_PREDICTIONS, space_bar_pressed, DRAW_TRAJECTORY, SPACE_ONLY_MOVEMENTS

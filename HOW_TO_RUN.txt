@@ -1,3 +1,7 @@
 TRAIN MODEL
 python train_model_offline.py --sequence_length 20 --output_size 1 --desc mix
 python train_model_offline.py --sequence_length 20 --output_size 5 --desc mix --normalize
+
+TRAIN CLASSIFIER
+python train_classifier.py --sequence_length 20 --num_classes 3 --hidden_layers 64ReLU-32ReLU --desc shapes
+python train_classifier.py --sequence_length 20 --num_classes 3 --hidden_layers 64ReLU-32ReLU --desc shapes --normalize
