@@ -1,7 +1,12 @@
 import pygame
 import math
 import os
-from predictors import predictor_alpha, predictor_beta, predictor_gamma, PREDICTOR_COLORS
+import numpy as np
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from predictors import predictor_alpha, predictor_beta, predictor_gamma, predictor_delta, PREDICTOR_COLORS
+from ml_model import MousePredictor, train_model, save_model, load_model, predict
 
 # Initialize Pygame
 pygame.init()
@@ -18,17 +23,19 @@ FPS_MAX = 60
 FPS_STEP = 1
 FPS_LIMIT = 10
 ERROR_LIMIT = 500
+NUMBER_OF_PREDICTIONS = 1
 RECORDED_POSITIONS_LIMIT = 50
 RECORDED_POSITIONS_LIMIT_STEP = 5
 CONTINUOUS_DETECTION = False
-NUMBER_OF_PREDICTIONS = 5
 DRAW_CURRENT_PREDICTIONS = True
 DRAW_PAST_PREDICTIONS = True
 DRAW_TRAJECTORY = True
+TRAIN_EVERY_N_UPDATES = 50
 
 past_predictions = {name: [] for name in PREDICTOR_COLORS.keys()}
 update_counters = {name: 0 for name in PREDICTOR_COLORS.keys()}
 space_bar_pressed = False
+train_counter = 0
 
 # Create data directory if not exists
 if not os.path.exists("data"):
@@ -39,6 +46,13 @@ WINDOW = pygame.display.set_mode(WINDOW_SIZE)
 pygame.display.set_caption("Center point")
 recorded_positions = []
 last_predicted_points = {}
+
+# Initialize the model
+model = MousePredictor()
+criterion = nn.MSELoss()
+optimizer = optim.Adam(model.parameters(), lr=0.001)
+model = load_model(model)
+
 predictors = {
     "alpha": {
         "function": predictor_alpha,
@@ -57,6 +71,12 @@ predictors = {
         "color": PREDICTOR_COLORS["gamma"],
         "errors": [],
         "file": open(os.path.join("data", "errors_gamma.txt"), "w")
+    },
+    "delta": {
+        "function": lambda points: predictor_delta(points, model),
+        "color": PREDICTOR_COLORS["delta"],
+        "errors": [],
+        "file": open(os.path.join("data", "errors_delta.txt"), "w")
     }
 }
 
@@ -70,7 +90,7 @@ def calculate_errors(predicted, actual):
     return error1, error2
 
 def update_simulation():
-    global recorded_positions, last_predicted_points, predictors, past_predictions, update_counters
+    global recorded_positions, last_predicted_points, predictors, past_predictions, update_counters, train_counter, model
 
     mouse_pos = pygame.mouse.get_pos()
     mouse_positions_file.write(f"{mouse_pos[0]}, {mouse_pos[1]}\n")
@@ -84,6 +104,18 @@ def update_simulation():
 
     if len(recorded_positions) > RECORDED_POSITIONS_LIMIT:
         recorded_positions.pop(0)
+
+    # Train the model every TRAIN_EVERY_N_UPDATES updates
+    if len(recorded_positions) >= 21 and train_counter % TRAIN_EVERY_N_UPDATES == 0:
+        input_data = np.array(recorded_positions[-21:-1]).flatten()
+        target_data = np.array(recorded_positions[-1])
+        input_tensor = torch.FloatTensor(input_data).unsqueeze(0)
+        target_tensor = torch.FloatTensor(target_data).unsqueeze(0)
+        loss = train_model(model, input_tensor, target_tensor, criterion, optimizer)
+        print(f"Training loss: {loss}")
+        save_model(model)
+
+    train_counter += 1
 
     for name, predictor in predictors.items():
         points = recorded_positions[:]
@@ -116,7 +148,8 @@ def update_simulation():
 
 def draw_trajectory(points, color):
     for i in range(1, len(points)):
-        pygame.draw.line(WINDOW, color, points[i-1], points[i], 2)
+        if points[i-1] is not None and points[i] is not None:
+            pygame.draw.line(WINDOW, color, points[i-1], points[i], 2)
 
 def draw_graphics():
     WINDOW.fill((0, 0, 0))
@@ -140,12 +173,13 @@ def draw_graphics():
             predicted_points = []
             for _ in range(NUMBER_OF_PREDICTIONS):
                 predicted_point = predictor["function"](points)
-                if predicted_point:
+                if predicted_point is not None:
                     predicted_points.append(predicted_point)
                     if len(points) >= RECORDED_POSITIONS_LIMIT:
                         points.pop(0)
                     points.append(predicted_point)
-            draw_trajectory(predicted_points, predictor["color"])
+            if predicted_points:
+                draw_trajectory(predicted_points, predictor["color"])
 
     render_text()
     pygame.display.update()

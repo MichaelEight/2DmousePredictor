@@ -1,9 +1,12 @@
 import numpy as np
+import torch
+from ml_model import MousePredictor, predict
 
 PREDICTOR_COLORS = {
     "alpha": (255, 0, 0),  # Red
     "beta": (0, 255, 0),   # Green
-    "gamma":  (0, 0, 255)  # Blue
+    "gamma": (0, 0, 255),  # Blue
+    "delta": (255, 255, 0)  # Yellow
 }
 
 def predictor_alpha(points):
@@ -39,7 +42,6 @@ def predictor_beta(points):
     
     return (next_x, next_y)
 
-
 def predictor_gamma(points):
     if len(points) < 4:
         return None
@@ -67,4 +69,12 @@ def predictor_gamma(points):
     
     return tuple(next_position)
 
-
+def predictor_delta(points, model):
+    if len(points) < 20:
+        return None
+    
+    input_data = np.array(points[-20:]).flatten()
+    input_tensor = torch.FloatTensor(input_data).unsqueeze(0)
+    prediction = predict(model, input_tensor)
+    
+    return tuple(prediction[0].tolist())
