@@ -20,7 +20,6 @@ def save_model(model, hidden_layers, path="model.pth", class_map=None):
     }
     torch.save(checkpoint, path)
 
-
 # Load the recorded data from all files in the folder
 def load_data(folder_path, normalize=False, window_size=(1000, 1000)):
     data = []
@@ -47,7 +46,8 @@ def load_data(folder_path, normalize=False, window_size=(1000, 1000)):
                 sequence.append((x, y))
             data.append(sequence)
             labels.append(class_map[class_name])
-    return data, labels, files_used, class_map
+    num_classes = len(class_map)
+    return data, labels, files_used, class_map, num_classes
 
 # Prepare the dataset for training
 def prepare_dataset(data, labels, sequence_length):
@@ -109,8 +109,8 @@ def hidden_layers_to_str(hidden_layers):
     return '-'.join([f"{size}{activation[0].upper()}" for size, activation in hidden_layers])
 
 # Main function to train and save the model
-def main(sequence_length, num_classes, hidden_layers, description, normalize=False):
-    data, labels, files_used, class_map = load_data(data_folder_path, normalize=normalize)
+def main(sequence_length, hidden_layers, description, normalize=False):
+    data, labels, files_used, class_map, num_classes = load_data(data_folder_path, normalize=normalize)
     model = ShapeClassifier(sequence_length, num_classes, hidden_layers)
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=0.001)
@@ -124,7 +124,6 @@ def main(sequence_length, num_classes, hidden_layers, description, normalize=Fal
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--sequence_length', type=int, default=20, help='Length of input sequence')
-    parser.add_argument('--num_classes', type=int, default=3, help='Number of shape classes')
     parser.add_argument('--hidden_layers', type=str, default="64ReLU-32ReLU", help='Hidden layers configuration')
     parser.add_argument('--desc', type=str, default="shapes", help='Describe data used to train model')
     parser.add_argument('--normalize', action='store_true', help='Normalize data coordinates to 0.0-1.0 range')
@@ -136,4 +135,4 @@ if __name__ == "__main__":
         size, activation = int(hl[:-4]), hl[-4:]
         hidden_layers.append((size, activation))
 
-    main(args.sequence_length, args.num_classes, hidden_layers, args.desc, args.normalize)
+    main(args.sequence_length, hidden_layers, args.desc, args.normalize)
