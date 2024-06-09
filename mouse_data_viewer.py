@@ -15,7 +15,7 @@ TEXT_PADDING = 10
 FPS_LIMIT = 30
 
 # Load data files
-data_folder_path = 'mouse_data_to_train'
+data_folder_path = 'data_mouse'
 data_files = os.listdir(data_folder_path)
 data_files = sorted(data_files)
 
