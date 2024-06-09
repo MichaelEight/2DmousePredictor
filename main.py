@@ -20,9 +20,10 @@ TEXT_PADDING = 20
 FPS_MIN = 1
 FPS_MAX = 60
 FPS_STEP = 5
-FPS_LIMIT = 10
+FPS_LIMIT = 30
 ERROR_LIMIT = 500
 NUMBER_OF_PREDICTIONS = 1
+NUMBER_OF_PREDICTIONS_STEP = 5
 RECORDED_POSITIONS_LIMIT = 50
 RECORDED_POSITIONS_LIMIT_STEP = 5
 CONTINUOUS_DETECTION = False
@@ -45,26 +46,29 @@ pygame.display.set_caption("Center point")
 recorded_positions = []
 last_predicted_points = {}
 
-# Check if the model exists and load it, else set to None
+# Check if the models exist in the models_to_load directory and load them
 parser = argparse.ArgumentParser()
-parser.add_argument('--sequence_length', type=int, default=20, help='Length of input sequence')
+parser.add_argument('--models_path', type=str, default='models_to_load', help='Path to the directory containing models')
 args = parser.parse_args()
 
-model = MousePredictor(args.sequence_length)
-model_path = f"model_{args.sequence_length}.pth"
-if os.path.exists(model_path):
-    model = load_model(model, model_path)
-else:
-    model = None
+models = {}
+for file in os.listdir(args.models_path):
+    if file.endswith('.pth'):
+        seq_length = int(file.split('_')[1].split('.')[0])
+        model = MousePredictor(seq_length)
+        model_path = os.path.join(args.models_path, file)
+        model = load_model(model, model_path)
+        models[seq_length] = model
 
-predictors = {
-    "delta": {
-        "function": lambda points: predictor_delta(points, model, args.sequence_length) if model else None,
-        "color": PREDICTOR_COLORS["delta"],
+# Update predictors to use multiple models
+predictors = {}
+for seq_length, model in models.items():
+    predictors[f'delta_{seq_length}'] = {
+        "function": lambda points, model=model, seq_length=seq_length: predictor_delta(points, model, seq_length) if model else None,
+        "color": PREDICTOR_COLORS[f'delta_{seq_length}'],
         "errors": [],
-        "file": open(os.path.join("data", "errors_delta.txt"), "w")
+        "file": open(os.path.join("data", f"errors_delta_{seq_length}.txt"), "w")
     }
-}
 
 mouse_positions_file = open(os.path.join("data", "mouse_positions.txt"), "w")
 
@@ -141,7 +145,7 @@ def draw_graphics():
     for pos in recorded_positions:
         pygame.draw.circle(WINDOW, POSITION_POINT_COLOR, pos, 5)
 
-    if DRAW_TRAJECTORY:
+    if DRAW_TRAJECTORY and DRAW_PAST_PREDICTIONS:
         for name, prediction_set in past_predictions.items():
             color = predictors[name]["color"]
             faded_color = (color[0] // 2, color[1] // 2, color[2] // 2)  # 50% opacity
@@ -159,7 +163,7 @@ def draw_graphics():
                     if len(points) >= RECORDED_POSITIONS_LIMIT:
                         points.pop(0)
                     points.append(predicted_point)
-            if predicted_points:
+            if predicted_points and DRAW_TRAJECTORY:
                 draw_trajectory(predicted_points, predictor["color"])
 
     render_text()
@@ -192,7 +196,7 @@ def handle_events():
                 mouse_positions_file.close()
                 pygame.quit()
                 quit()
-            elif event.key == pygame.K_s:
+            elif event.key == pygame.K_c:
                 CONTINUOUS_DETECTION = not CONTINUOUS_DETECTION
             elif event.key == pygame.K_p:
                 DRAW_PAST_PREDICTIONS = not DRAW_PAST_PREDICTIONS
@@ -209,9 +213,9 @@ def handle_events():
             elif event.key == pygame.K_n:
                 RECORDED_POSITIONS_LIMIT = max(RECORDED_POSITIONS_LIMIT - RECORDED_POSITIONS_LIMIT_STEP, RECORDED_POSITIONS_LIMIT_STEP)
             elif event.key == pygame.K_l:
-                NUMBER_OF_PREDICTIONS += 1
+                NUMBER_OF_PREDICTIONS += NUMBER_OF_PREDICTIONS_STEP
             elif event.key == pygame.K_k:
-                NUMBER_OF_PREDICTIONS = max(1, NUMBER_OF_PREDICTIONS - 1)
+                NUMBER_OF_PREDICTIONS = max(1, NUMBER_OF_PREDICTIONS - NUMBER_OF_PREDICTIONS_STEP)
             elif event.key == pygame.K_SPACE:
                 space_bar_pressed = True
         elif event.type == pygame.KEYUP:
