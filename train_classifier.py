@@ -3,7 +3,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from ml_model import ShapeClassifier, save_model
+from shape_classifier_model import ShapeClassifier, save_model
 import argparse
 import time
 
@@ -74,7 +74,7 @@ def train_classifier(data, labels, model, criterion, optimizer, sequence_length,
     return len(inputs), training_time, final_loss
 
 # Create a description file for the model
-def create_description_file(sequence_length, num_classes, hidden_layers, description, data_size, training_time, final_loss, model, model_path, files_used):
+def create_description_file(sequence_length, num_classes, hidden_layers, description, data_size, training_time, final_loss, model, model_path, files_used, class_map):
     description_path = model_path.replace('.pth', '_description.txt')
     with open(description_path, 'w') as f:
         f.write(f"Model Name: {os.path.basename(model_path)}\n")
@@ -90,6 +90,9 @@ def create_description_file(sequence_length, num_classes, hidden_layers, descrip
             f.write(f"  - {file}\n")
         f.write(f"Model Structure:\n")
         f.write(str(model) + "\n")
+        f.write(f"Class Map:\n")
+        for k, v in class_map.items():
+            f.write(f"  - {k}: {v}\n")
 
 # Convert hidden layers to string for naming
 def hidden_layers_to_str(hidden_layers):
@@ -106,7 +109,7 @@ def main(sequence_length, num_classes, hidden_layers, description, normalize=Fal
     hidden_layers_str = hidden_layers_to_str(hidden_layers)
     model_path = f"{trained_model_path}/classifier_{sequence_length}_{num_classes}_{hidden_layers_str}_{description}_{norm_flag}.pth"
     save_model(model, hidden_layers, model_path)
-    create_description_file(sequence_length, num_classes, hidden_layers, description, data_size, training_time, final_loss, model, model_path, files_used)
+    create_description_file(sequence_length, num_classes, hidden_layers, description, data_size, training_time, final_loss, model, model_path, files_used, class_map)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

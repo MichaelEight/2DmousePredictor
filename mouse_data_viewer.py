@@ -30,6 +30,21 @@ for file_name in data_files:
             data_points.append((x, y))
     all_data_points.append((file_name, data_points))
 
+# Load data files
+data_folder_path = 'data_classifier'
+data_files = os.listdir(data_folder_path)
+data_files = sorted(data_files)
+
+# Load data from all files
+for file_name in data_files:
+    file_path = os.path.join(data_folder_path, file_name)
+    data_points = []
+    with open(file_path, 'r') as file:
+        for line in file:
+            x, y = map(int, line.strip().split(','))
+            data_points.append((x, y))
+    all_data_points.append((file_name, data_points))
+
 # Initialize variables
 current_index = 0
 
