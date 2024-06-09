@@ -51,32 +51,42 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--models_path', type=str, default='models_to_load', help='Path to the directory containing models')
 args = parser.parse_args()
 
+used_colors = set()
 models = {}
 for file in os.listdir(args.models_path):
     if file.endswith('.pth'):
         parts = file.split('_')
-        seq_length = int(parts[1])
-        model_type = parts[2].split('.')[0]
+        seq_length = int(parts[0][1:])  # Extract sequence length from L20
+        model_type = parts[1]
+        norm_flag = parts[2].split('.')[0]
+        normalize = norm_flag == "N"
         model = MousePredictor(seq_length)
         model_path = os.path.join(args.models_path, file)
         model = load_model(model, model_path)
-        models[(seq_length, model_type)] = model
+        models[(seq_length, model_type, norm_flag)] = model
 
 # Update predictors to use multiple models
 predictors = {}
-for (seq_length, model_type), model in models.items():
+for (seq_length, model_type, norm_flag), model in models.items():
     color_key = f'delta_{seq_length}'
-    color = PREDICTOR_COLORS.get(color_key, get_random_color())
-    predictor_key = f'delta_{seq_length}_{model_type}'
+    if color_key in PREDICTOR_COLORS:
+        color = PREDICTOR_COLORS[color_key]
+    if color in used_colors:
+        color = get_random_color(used_colors)
+    used_colors.add(color)
+    predictor_key = f'L{seq_length}_{model_type}_{norm_flag}'
+    normalize = norm_flag == "N"
     predictors[predictor_key] = {
-        "function": lambda points, model=model, seq_length=seq_length: predictor_delta(points, model, seq_length) if model else None,
+        "function": lambda points, model=model, seq_length=seq_length, normalize=normalize: predictor_delta(points, model, seq_length, normalize) if model else None,
         "color": color,
         "errors": [],
         "file": open(os.path.join("data", f"errors_{predictor_key}.txt"), "w")
     }
     past_predictions[predictor_key] = []
     update_counters[predictor_key] = 0
-    print(f"Loaded model: Sequence Length: {seq_length}, Type: {model_type}, Color: {color}")
+    print(f"Loaded model: Sequence Length: {seq_length}, Type: {model_type}, Normalized: {normalize}, Color: {color}")
+
+
 
 mouse_positions_file = open(os.path.join("data", "mouse_positions.txt"), "w")
 

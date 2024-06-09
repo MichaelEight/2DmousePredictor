@@ -1,1 +1,5 @@
 /data
+/trained_models/*
+/good_models
+/models_to_load/*
+/mouse_data_to_train/*
