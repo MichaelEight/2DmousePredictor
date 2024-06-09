@@ -1,9 +1,9 @@
-import math
+import numpy as np
 
 PREDICTOR_COLORS = {
     "alpha": (255, 0, 0),  # Red
     "beta": (0, 255, 0),   # Green
-    # Add more colors for additional predictors here
+    "gamma":  (0, 0, 255)  # Blue
 }
 
 def predictor_alpha(points):
@@ -39,4 +39,32 @@ def predictor_beta(points):
     
     return (next_x, next_y)
 
-# Add additional predictor functions here
+
+def predictor_gamma(points):
+    if len(points) < 4:
+        return None
+    
+    positions = np.array(points)
+    
+    # Calculate velocity
+    velocities = np.diff(positions, axis=0)
+    
+    # Calculate acceleration
+    accelerations = np.diff(velocities, axis=0)
+    
+    # Calculate jerk
+    jerks = np.diff(accelerations, axis=0)
+    
+    # Calculate average velocity, acceleration, and jerk
+    avg_velocity = np.mean(velocities, axis=0)
+    avg_acceleration = np.mean(accelerations, axis=0)
+    avg_jerk = np.mean(jerks, axis=0)
+    
+    # Predict the next point
+    last_position = positions[-1]
+    next_velocity = avg_velocity + avg_acceleration + avg_jerk
+    next_position = last_position + next_velocity
+    
+    return tuple(next_position)
+
+

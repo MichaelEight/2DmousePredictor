@@ -1,7 +1,7 @@
 import pygame
 import math
 import os
-from predictors import predictor_alpha, predictor_beta, PREDICTOR_COLORS
+from predictors import predictor_alpha, predictor_beta, predictor_gamma, PREDICTOR_COLORS
 
 # Initialize Pygame
 pygame.init()
@@ -16,9 +16,10 @@ TEXT_PADDING = 20
 FPS_MIN = 1
 FPS_MAX = 60
 FPS_STEP = 1
+FPS_LIMIT = 10
 ERROR_LIMIT = 500
 RECORDED_POSITIONS_LIMIT = 50
-FPS_LIMIT = 10
+RECORDED_POSITIONS_LIMIT_STEP = 5
 CONTINUOUS_DETECTION = False
 NUMBER_OF_PREDICTIONS = 5
 DRAW_CURRENT_PREDICTIONS = True
@@ -49,8 +50,13 @@ predictors = {
         "color": PREDICTOR_COLORS["beta"],
         "errors": [],
         "file": open(os.path.join("data", "errors_beta.txt"), "w")
+    },
+    "gamma": {
+        "function": predictor_gamma,
+        "color": PREDICTOR_COLORS["gamma"],
+        "errors": [],
+        "file": open(os.path.join("data", "errors_gamma.txt"), "w")
     }
-    # Add additional predictors here
 }
 
 mouse_positions_file = open(os.path.join("data", "mouse_positions.txt"), "w")
@@ -175,9 +181,9 @@ def handle_events():
             elif event.key == pygame.K_COMMA:
                 FPS_LIMIT = max(FPS_LIMIT - FPS_STEP, FPS_MIN)
             elif event.key == pygame.K_m:
-                RECORDED_POSITIONS_LIMIT = min(RECORDED_POSITIONS_LIMIT + FPS_STEP, 100)
+                RECORDED_POSITIONS_LIMIT = min(RECORDED_POSITIONS_LIMIT + RECORDED_POSITIONS_LIMIT_STEP, 100)
             elif event.key == pygame.K_n:
-                RECORDED_POSITIONS_LIMIT = max(RECORDED_POSITIONS_LIMIT - FPS_STEP, FPS_STEP)
+                RECORDED_POSITIONS_LIMIT = max(RECORDED_POSITIONS_LIMIT - RECORDED_POSITIONS_LIMIT_STEP, RECORDED_POSITIONS_LIMIT_STEP)
             elif event.key == pygame.K_l:
                 NUMBER_OF_PREDICTIONS += 1
             elif event.key == pygame.K_k:
