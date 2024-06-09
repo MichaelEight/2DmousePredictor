@@ -11,9 +11,11 @@ AI:
 V train model based on user moving mouse around
 V input: 10 or more (x,y) pairs, where mouse have been so far
 V output: 1 predicted (x,y) pair where mouse will be
-- RECOGNIZER, so recognize the shape user is making (square, circle, line, curve + direction (anti)clockwise) and use model trained for just that
-- display list of recognized shapes
-- display confidence of each shape
+V RECOGNIZER, so recognize the shape user is making (square, circle, line, curve + direction (anti)clockwise)
+  - ...and use model trained for just that, predicting next step
+V display list of recognized shapes
+V display confidence of each shape
+- increase seq length for better shape recognition
 
 rating:
 V difference between predicted (x,y) and actual (x,y)
