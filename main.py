@@ -219,10 +219,10 @@ def render_text():
 
     # Display classifier status
     classifier_status = f"Classifier: {predicted_shape}"
-    classifier_surface = font.render(classifier_status, True, (255, 255, 255))
+    classifier_surface = font.render(classifier_status, True, (0, 0, 0))
     classifier_bg = pygame.Surface(classifier_surface.get_size())
-    classifier_bg.fill((0, 0, 0))
-    classifier_bg.set_alpha(128)  # 50% opacity
+    classifier_bg.fill((255, 255, 255))
+    classifier_bg.set_alpha(256)  # opacity
     classifier_bg.blit(classifier_surface, (0, 0))
     WINDOW.blit(classifier_bg, (TEXT_PADDING, y_offset))
     y_offset += TEXT_PADDING + classifier_surface.get_height()
@@ -231,8 +231,8 @@ def render_text():
         avg_error = sum(e[0] for e in predictor["errors"]) / len(predictor["errors"]) if predictor["errors"] else 0
         text_surface = font.render(f"{name}: {avg_error:.2f}", True, predictor["color"])
         text_bg = pygame.Surface(text_surface.get_size())
-        text_bg.fill((0, 0, 0))
-        text_bg.set_alpha(128)  # 50% opacity
+        text_bg.fill((255, 255, 255))
+        text_bg.set_alpha(255)  # opacity
         text_bg.blit(text_surface, (0, 0))
         WINDOW.blit(text_bg, (TEXT_PADDING, y_offset))
         y_offset += TEXT_PADDING + text_surface.get_height()
