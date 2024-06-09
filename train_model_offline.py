@@ -62,12 +62,13 @@ def train_offline(data, model, criterion, optimizer, sequence_length, output_siz
     return len(inputs), training_time, final_loss
 
 # Create a description file for the model
-def create_description_file(sequence_length, output_size, description, data_size, training_time, final_loss, model, model_path, files_used):
+def create_description_file(sequence_length, output_size, hidden_layers, description, data_size, training_time, final_loss, model, model_path, files_used):
     description_path = model_path.replace('.pth', '_description.txt')
     with open(description_path, 'w') as f:
         f.write(f"Model Name: {os.path.basename(model_path)}\n")
         f.write(f"Sequence Length: {sequence_length}\n")
         f.write(f"Output Size: {output_size}\n")
+        f.write(f"Hidden Layers: {hidden_layers}\n")
         f.write(f"Data Size: {data_size}\n")
         f.write(f"Training Time: {training_time:.2f} seconds\n")
         f.write(f"Final Loss: {final_loss:.4f}\n")
@@ -78,26 +79,36 @@ def create_description_file(sequence_length, output_size, description, data_size
         f.write(f"Model Structure:\n")
         f.write(str(model) + "\n")
 
+# Convert hidden layers to string for naming
+def hidden_layers_to_str(hidden_layers):
+    return '-'.join([f"{size}{activation[0].upper()}" for size, activation in hidden_layers])
+
 # Main function to train and save the model
-def main(sequence_length, output_size, description, normalize=False):
+def main(sequence_length, output_size, hidden_layers, description, normalize=False):
     data, files_used = load_data(data_folder_path, normalize=normalize)
-    model = MousePredictor(sequence_length, output_size)
+    model = MousePredictor(sequence_length, output_size, hidden_layers)
     criterion = nn.MSELoss()
     optimizer = optim.Adam(model.parameters(), lr=0.001)
     data_size, training_time, final_loss = train_offline(data, model, criterion, optimizer, sequence_length, output_size)
     norm_flag = "N" if normalize else "U"
-    model_path = f"{trained_model_path}/L{sequence_length}_{output_size}_{description}_{norm_flag}.pth"
-    save_model(model, model_path)
-    create_description_file(sequence_length, output_size, description, data_size, training_time, final_loss, model, model_path, files_used)
+    hidden_layers_str = hidden_layers_to_str(hidden_layers)
+    model_path = f"{trained_model_path}/L{sequence_length}_{output_size}_{hidden_layers_str}_{description}_{norm_flag}.pth"
+    save_model(model, hidden_layers, model_path)
+    create_description_file(sequence_length, output_size, hidden_layers, description, data_size, training_time, final_loss, model, model_path, files_used)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--sequence_length', type=int, default=20, help='Length of input sequence')
     parser.add_argument('--output_size', type=int, default=1, help='Number of points to predict')
+    parser.add_argument('--hidden_layers', type=str, default="64ReLU-32ReLU", help='Hidden layers configuration')
     parser.add_argument('--desc', type=str, default="mix", help='Describe data used to train model')
     parser.add_argument('--normalize', action='store_true', help='Normalize data coordinates to 0.0-1.0 range')
     args = parser.parse_args()
-    main(args.sequence_length, args.output_size, args.desc, args.normalize)
 
-# EXAMPLE
-# python train_model_offline.py --sequence_length 20 --output_size 5 --desc mix --normalize
+    # Parse hidden layers
+    hidden_layers = []
+    for hl in args.hidden_layers.split('-'):
+        size, activation = int(hl[:-4]), hl[-4:]
+        hidden_layers.append((size, activation))
+
+    main(args.sequence_length, args.output_size, hidden_layers, args.desc, args.normalize)

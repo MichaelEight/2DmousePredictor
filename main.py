@@ -61,9 +61,8 @@ for file in os.listdir(args.models_path):
         model_type = parts[2]
         norm_flag = parts[3].split('.')[0]
         normalize = norm_flag == "N"
-        model = MousePredictor(seq_length, output_size)
         model_path = os.path.join(args.models_path, file)
-        model = load_model(model, model_path)
+        model, hidden_layers = load_model(seq_length, output_size, model_path)
         models[(seq_length, output_size, model_type, norm_flag)] = model
 
 # Update predictors to use multiple models
