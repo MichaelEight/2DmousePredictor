@@ -5,6 +5,7 @@ import numpy as np
 import torch
 from predictors import predictor_delta, PREDICTOR_COLORS
 from ml_model import MousePredictor, load_model
+import argparse
 
 # Initialize Pygame
 pygame.init()
@@ -18,7 +19,7 @@ POSITION_POINT_LINE_COLOR = (255, 255, 255)
 TEXT_PADDING = 20
 FPS_MIN = 1
 FPS_MAX = 60
-FPS_STEP = 1
+FPS_STEP = 5
 FPS_LIMIT = 10
 ERROR_LIMIT = 500
 NUMBER_OF_PREDICTIONS = 1
@@ -45,16 +46,20 @@ recorded_positions = []
 last_predicted_points = {}
 
 # Check if the model exists and load it, else set to None
-model = MousePredictor()
-model_path = "mouse_predictor.pth"
+parser = argparse.ArgumentParser()
+parser.add_argument('--sequence_length', type=int, default=20, help='Length of input sequence')
+args = parser.parse_args()
+
+model = MousePredictor(args.sequence_length)
+model_path = f"model_{args.sequence_length}.pth"
 if os.path.exists(model_path):
-    model = load_model(model)
+    model = load_model(model, model_path)
 else:
     model = None
 
 predictors = {
     "delta": {
-        "function": lambda points: predictor_delta(points, model) if model else None,
+        "function": lambda points: predictor_delta(points, model, args.sequence_length) if model else None,
         "color": PREDICTOR_COLORS["delta"],
         "errors": [],
         "file": open(os.path.join("data", "errors_delta.txt"), "w")
@@ -78,7 +83,7 @@ def update_simulation():
     mouse_pos = pygame.mouse.get_pos()
     has_mouse_moved = mouse_pos != recorded_positions[-1] if recorded_positions else False
     
-    if ((CONTINUOUS_DETECTION and has_mouse_moved) or not SPACE_ONLY_MOVEMENTS) and space_bar_pressed:
+    if (CONTINUOUS_DETECTION or has_mouse_moved) and space_bar_pressed:
         mouse_positions_file.write(f"{mouse_pos[0]}, {mouse_pos[1]}\n")
         mouse_positions_counter += 1
         if mouse_positions_counter % 100 == 0:
