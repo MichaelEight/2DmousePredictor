@@ -37,6 +37,7 @@ past_predictions = {}
 update_counters = {}
 space_bar_pressed = False
 predicted_shape = "Not loaded"
+class_map = {}
 
 # Create data directory if not exists
 if not os.path.exists("data"):
@@ -119,7 +120,7 @@ def calculate_errors(predicted, actual):
 
 # Modify update_simulation function
 def update_simulation():
-    global recorded_positions, last_predicted_points, predictors, past_predictions, update_counters, mouse_positions_counter, predicted_shape
+    global recorded_positions, last_predicted_points, predictors, past_predictions, update_counters, mouse_positions_counter, predicted_shape, probabilities
 
     mouse_pos = pygame.mouse.get_pos()
     has_mouse_moved = mouse_pos != recorded_positions[-1] if recorded_positions else False
@@ -170,12 +171,11 @@ def update_simulation():
     # Predict shape
     if classifier_loaded and len(recorded_positions) >= sequence_length:
         input_data = torch.FloatTensor([np.array(recorded_positions[-sequence_length:]).flatten()])
-        predicted_class_idx = predict_shape(classifier_model, input_data, sequence_length)
+        predicted_class_idx, probabilities = predict_shape(classifier_model, input_data, sequence_length)
         predicted_shape = {v: k for k, v in class_map.items()}.get(predicted_class_idx, "Unknown shape")
     else:
         predicted_shape = "Not loaded"
-
-
+        probabilities = []
 
 def draw_trajectory(points, color):
     for i in range(1, len(points)):
@@ -213,30 +213,71 @@ def draw_graphics():
     render_text()
     pygame.display.update()
 
+def get_gradient_color(progress):
+    if progress <= 0.5:
+        # Interpolate between dark red and yellow
+        red = int(139 + (255 - 139) * (progress / 0.5))
+        green = int(0 + (255 * (progress / 0.5)))
+        blue = 0
+    else:
+        # Interpolate between yellow and dark green
+        red = int(255 - (255 - 0) * ((progress - 0.5) / 0.5))
+        green = int(255 - (255 - 100) * ((progress - 0.5) / 0.5))
+        blue = int(0 + (0 - 0) * ((progress - 0.5) / 0.5))
+    return (red, green, blue)
+
+
+def draw_progress_bar(x, y, width, height, progress):
+    pygame.draw.rect(WINDOW, (0, 0, 0), (x, y, width, height))  # Background bar
+    bar_color = get_gradient_color(progress)
+    pygame.draw.rect(WINDOW, bar_color, (x, y, int(width * progress), height))  # Progress bar
+
 def render_text():
-    font = pygame.font.Font(None, 36)
+    font = pygame.font.Font(None, 28)  # Font size for shapes list
     y_offset = TEXT_PADDING
+    bar_width = 200  # Width of the progress bar
+    bar_height = 20  # Height of the progress bar
+
+    def draw_text_with_background(text, x, y, color, bg_color, font):
+        text_surface = font.render(text, True, color)
+        text_bg = pygame.Surface(text_surface.get_size())
+        text_bg.fill(bg_color)
+        text_bg.set_alpha(255)  # Full opacity
+        text_bg.blit(text_surface, (0, 0))
+        WINDOW.blit(text_bg, (x, y))
 
     # Display classifier status
-    classifier_status = f"Classifier: {predicted_shape}"
-    classifier_surface = font.render(classifier_status, True, (0, 0, 0))
-    classifier_bg = pygame.Surface(classifier_surface.get_size())
-    classifier_bg.fill((255, 255, 255))
-    classifier_bg.set_alpha(256)  # opacity
-    classifier_bg.blit(classifier_surface, (0, 0))
+    classifier_status = "Classifier:"
+    classifier_surface = font.render(classifier_status, True, (255, 255, 255))
+    classifier_bg = pygame.Surface((WINDOW_SIZE[0] - 2 * TEXT_PADDING, 30))  # Adjust size for the background
+    classifier_bg.fill((0, 0, 0))
+    classifier_bg.set_alpha(128)  # 50% opacity
     WINDOW.blit(classifier_bg, (TEXT_PADDING, y_offset))
-    y_offset += TEXT_PADDING + classifier_surface.get_height()
+
+    draw_text_with_background(classifier_status, TEXT_PADDING, y_offset, (255, 255, 255), (0, 0, 0), font)
+    y_offset += TEXT_PADDING + 30
+
+    if classifier_loaded and probabilities:
+        shape_names = [k for k, v in sorted(class_map.items(), key=lambda item: item[1])]
+        for shape_name in shape_names:
+            idx = class_map[shape_name]
+            prob = probabilities[idx]
+            prob_text = f"{shape_name}:"
+
+            draw_text_with_background(prob_text, TEXT_PADDING, y_offset, (255, 255, 255), (0, 0, 0), font)
+            draw_progress_bar(TEXT_PADDING + 150, y_offset + 5, bar_width, bar_height, prob)
+            y_offset += TEXT_PADDING + 30
 
     for name, predictor in predictors.items():
         avg_error = sum(e[0] for e in predictor["errors"]) / len(predictor["errors"]) if predictor["errors"] else 0
-        text_surface = font.render(f"{name}: {avg_error:.2f}", True, predictor["color"])
-        text_bg = pygame.Surface(text_surface.get_size())
-        text_bg.fill((255, 255, 255))
-        text_bg.set_alpha(255)  # opacity
-        text_bg.blit(text_surface, (0, 0))
+        predictor_text = f"{name}: {avg_error:.2f}"
+        text_bg = pygame.Surface((WINDOW_SIZE[0] - 2 * TEXT_PADDING, 30))  # Adjust size for the background
+        text_bg.fill((0, 0, 0))
+        text_bg.set_alpha(128)  # 50% opacity
         WINDOW.blit(text_bg, (TEXT_PADDING, y_offset))
-        y_offset += TEXT_PADDING + text_surface.get_height()
 
+        draw_text_with_background(predictor_text, TEXT_PADDING, y_offset, predictor["color"], (0, 0, 0), font)
+        y_offset += TEXT_PADDING + 30
 
 
 def handle_events():

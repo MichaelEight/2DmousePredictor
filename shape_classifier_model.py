@@ -52,5 +52,7 @@ def predict_shape(model, data, sequence_length):
     model.eval()
     with torch.no_grad():
         output = model(data)
+        probabilities = torch.softmax(output, dim=1)
         _, predicted = torch.max(output, 1)
-        return predicted.item()
+        return predicted.item(), probabilities.squeeze().tolist()
+
