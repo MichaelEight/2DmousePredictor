@@ -55,17 +55,34 @@ args = parser.parse_args()
 
 used_colors = set()
 models = {}
+classifier_loaded = False
+
 for file in os.listdir(args.models_path):
     if file.endswith('.pth'):
         parts = file.split('_')
-        seq_length = int(parts[0][1:])  # Extract sequence length from L20
-        output_size = int(parts[1])  # Extract output size
-        model_type = parts[2]
-        norm_flag = parts[3].split('.')[0]
-        normalize = norm_flag == "N"
-        model_path = os.path.join(args.models_path, file)
-        model, hidden_layers = load_model(seq_length, output_size, model_path)
-        models[(seq_length, output_size, model_type, norm_flag)] = model
+        if file.startswith('L'):
+            seq_length = int(parts[0][1:])  # Extract sequence length from L20
+            output_size = int(parts[1])  # Extract output size
+            model_type = parts[2]
+            norm_flag = parts[3].split('.')[0]
+            normalize = norm_flag == "N"
+            model_path = os.path.join(args.models_path, file)
+            model, hidden_layers = load_model(seq_length, output_size, model_path)
+            models[(seq_length, output_size, model_type, norm_flag)] = model
+        elif file.startswith('classifier'):
+            sequence_length = int(parts[1])
+            num_classes = int(parts[2])
+            hidden_layers_str = parts[3]
+            description = parts[4]
+            norm_flag = parts[5].split('.')[0]
+            normalize = norm_flag == "N"
+            classifier_model_path = os.path.join(args.models_path, file)
+            classifier_model, classifier_hidden_layers, class_map = load_classifier(sequence_length, num_classes, classifier_model_path)
+            classifier_loaded = True
+            print(f"Loaded Classifier: {classifier_model_path}")
+
+if not classifier_loaded:
+    print("Classifier model not found.")
 
 # Update predictors to use multiple models
 predictors = {}
@@ -87,21 +104,7 @@ for (seq_length, output_size, model_type, norm_flag), model in models.items():
     }
     past_predictions[predictor_key] = []
     update_counters[predictor_key] = 0
-    print(f"Loaded model: Sequence Length: {seq_length}, Output Size: {output_size}, Type: {model_type}, Normalized: {normalize}, Color: {color}")
-
-# Load the shape classifier model
-sequence_length = 20  # Adjust as needed based on your classifier training
-num_classes = 2  # Adjust as needed based on your classifier training
-
-classifier_model_path = 'trained_models/classifier_20_2_64R-32R_shapes_U.pth'  # Adjust the path accordingly
-try:
-    classifier_model, classifier_hidden_layers, class_map = load_classifier(sequence_length, num_classes, classifier_model_path)
-    classifier_loaded = True
-    print("Classifier model loaded successfully.")
-except FileNotFoundError:
-    classifier_loaded = False
-    print("Classifier model not found.")
-
+    print(f"Loaded Predictor: Sequence Length: {seq_length}, Output Size: {output_size}, Type: {model_type}, Normalized: {normalize}, Color: {color}")
 
 mouse_positions_file = open(os.path.join("data", "mouse_positions.txt"), "w")
 mouse_positions_counter = 0
@@ -116,11 +119,11 @@ def calculate_errors(predicted, actual):
 
 # Modify update_simulation function
 def update_simulation():
-    global recorded_positions, last_predicted_points, predictors, past_predictions, update_counters, mouse_positions_counter
+    global recorded_positions, last_predicted_points, predictors, past_predictions, update_counters, mouse_positions_counter, predicted_shape
 
     mouse_pos = pygame.mouse.get_pos()
     has_mouse_moved = mouse_pos != recorded_positions[-1] if recorded_positions else False
-    
+
     if (CONTINUOUS_DETECTION or has_mouse_moved) and space_bar_pressed:
         mouse_positions_file.write(f"{mouse_pos[0]}, {mouse_pos[1]}\n")
         mouse_positions_counter += 1
@@ -163,6 +166,15 @@ def update_simulation():
 
         if space_bar_pressed and (CONTINUOUS_DETECTION or has_mouse_moved):
             last_predicted_points[name] = predicted_points
+
+    # Predict shape
+    if classifier_loaded and len(recorded_positions) >= sequence_length:
+        input_data = torch.FloatTensor([np.array(recorded_positions[-sequence_length:]).flatten()])
+        predicted_class_idx = predict_shape(classifier_model, input_data, sequence_length)
+        predicted_shape = {v: k for k, v in class_map.items()}.get(predicted_class_idx, "Unknown shape")
+    else:
+        predicted_shape = "Not loaded"
+
 
 
 def draw_trajectory(points, color):
@@ -208,14 +220,23 @@ def render_text():
     # Display classifier status
     classifier_status = f"Classifier: {predicted_shape}"
     classifier_surface = font.render(classifier_status, True, (255, 255, 255))
-    WINDOW.blit(classifier_surface, (TEXT_PADDING, y_offset))
+    classifier_bg = pygame.Surface(classifier_surface.get_size())
+    classifier_bg.fill((0, 0, 0))
+    classifier_bg.set_alpha(128)  # 50% opacity
+    classifier_bg.blit(classifier_surface, (0, 0))
+    WINDOW.blit(classifier_bg, (TEXT_PADDING, y_offset))
     y_offset += TEXT_PADDING + classifier_surface.get_height()
 
     for name, predictor in predictors.items():
         avg_error = sum(e[0] for e in predictor["errors"]) / len(predictor["errors"]) if predictor["errors"] else 0
         text_surface = font.render(f"{name}: {avg_error:.2f}", True, predictor["color"])
-        WINDOW.blit(text_surface, (TEXT_PADDING, y_offset))
+        text_bg = pygame.Surface(text_surface.get_size())
+        text_bg.fill((0, 0, 0))
+        text_bg.set_alpha(128)  # 50% opacity
+        text_bg.blit(text_surface, (0, 0))
+        WINDOW.blit(text_bg, (TEXT_PADDING, y_offset))
         y_offset += TEXT_PADDING + text_surface.get_height()
+
 
 
 def handle_events():

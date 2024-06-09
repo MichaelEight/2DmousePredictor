@@ -41,9 +41,11 @@ def load_classifier(input_size, num_classes, path="model.pth"):
         raise FileNotFoundError(f"Model file not found: {path}")
     checkpoint = torch.load(path)
     hidden_layers = checkpoint['hidden_layers']
+    class_map = checkpoint['class_map']
     model = ShapeClassifier(input_size, num_classes, hidden_layers)
     model.load_state_dict(checkpoint['model_state_dict'])
-    return model, hidden_layers, checkpoint.get('class_map', {})
+    return model, hidden_layers, class_map
+
 
 # Predict the shape
 def predict_shape(model, data, sequence_length):

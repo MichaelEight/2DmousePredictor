@@ -11,6 +11,16 @@ import time
 data_folder_path = 'data_classifier'
 trained_model_path = 'trained_models'
 
+# Save the classifier model
+def save_model(model, hidden_layers, path="model.pth", class_map=None):
+    checkpoint = {
+        'model_state_dict': model.state_dict(),
+        'hidden_layers': hidden_layers,
+        'class_map': class_map
+    }
+    torch.save(checkpoint, path)
+
+
 # Load the recorded data from all files in the folder
 def load_data(folder_path, normalize=False, window_size=(1000, 1000)):
     data = []
@@ -108,7 +118,7 @@ def main(sequence_length, num_classes, hidden_layers, description, normalize=Fal
     norm_flag = "N" if normalize else "U"
     hidden_layers_str = hidden_layers_to_str(hidden_layers)
     model_path = f"{trained_model_path}/classifier_{sequence_length}_{num_classes}_{hidden_layers_str}_{description}_{norm_flag}.pth"
-    save_model(model, hidden_layers, model_path)
+    save_model(model, hidden_layers, model_path, class_map=class_map)
     create_description_file(sequence_length, num_classes, hidden_layers, description, data_size, training_time, final_loss, model, model_path, files_used, class_map)
 
 if __name__ == "__main__":
