@@ -57,36 +57,36 @@ for file in os.listdir(args.models_path):
     if file.endswith('.pth'):
         parts = file.split('_')
         seq_length = int(parts[0][1:])  # Extract sequence length from L20
-        model_type = parts[1]
-        norm_flag = parts[2].split('.')[0]
+        output_size = int(parts[1])  # Extract output size
+        model_type = parts[2]
+        norm_flag = parts[3].split('.')[0]
         normalize = norm_flag == "N"
-        model = MousePredictor(seq_length)
+        model = MousePredictor(seq_length, output_size)
         model_path = os.path.join(args.models_path, file)
         model = load_model(model, model_path)
-        models[(seq_length, model_type, norm_flag)] = model
+        models[(seq_length, output_size, model_type, norm_flag)] = model
 
 # Update predictors to use multiple models
 predictors = {}
-for (seq_length, model_type, norm_flag), model in models.items():
+for (seq_length, output_size, model_type, norm_flag), model in models.items():
     color_key = f'delta_{seq_length}'
     if color_key in PREDICTOR_COLORS:
         color = PREDICTOR_COLORS[color_key]
     if color in used_colors:
         color = get_random_color(used_colors)
     used_colors.add(color)
-    predictor_key = f'L{seq_length}_{model_type}_{norm_flag}'
+    predictor_key = f'L{seq_length}_{output_size}_{model_type}_{norm_flag}'
     normalize = norm_flag == "N"
     predictors[predictor_key] = {
-        "function": lambda points, model=model, seq_length=seq_length, normalize=normalize: predictor_delta(points, model, seq_length, normalize) if model else None,
+        "function": lambda points, model=model, seq_length=seq_length, output_size=output_size, normalize=normalize: predictor_delta(points, model, seq_length, output_size, normalize) if model else None,
         "color": color,
         "errors": [],
-        "file": open(os.path.join("data", f"errors_{predictor_key}.txt"), "w")
+        "file": open(os.path.join("data/errors/", f"errors_{predictor_key}.txt"), "w"),
+        "output_size": output_size
     }
     past_predictions[predictor_key] = []
     update_counters[predictor_key] = 0
-    print(f"Loaded model: Sequence Length: {seq_length}, Type: {model_type}, Normalized: {normalize}, Color: {color}")
-
-
+    print(f"Loaded model: Sequence Length: {seq_length}, Output Size: {output_size}, Type: {model_type}, Normalized: {normalize}, Color: {color}")
 
 mouse_positions_file = open(os.path.join("data", "mouse_positions.txt"), "w")
 
@@ -122,13 +122,11 @@ def update_simulation():
         points = recorded_positions[:]
         predicted_points = []
 
-        for _ in range(NUMBER_OF_PREDICTIONS):
+        for _ in range(NUMBER_OF_PREDICTIONS // predictor["output_size"]):
             predicted_point = predictor["function"](points)
             if predicted_point:
-                if len(points) >= RECORDED_POSITIONS_LIMIT:
-                    points.pop(0)
-                points.append(predicted_point)
-                predicted_points.append(predicted_point)
+                points.extend(predicted_point)
+                predicted_points.extend(predicted_point)
 
         if space_bar_pressed and (CONTINUOUS_DETECTION or has_mouse_moved):
             update_counters[name] += 1
@@ -137,12 +135,13 @@ def update_simulation():
                 update_counters[name] = 0
 
         if space_bar_pressed and (CONTINUOUS_DETECTION or has_mouse_moved) and last_predicted_points.get(name) is not None:
-            error1, error2 = calculate_errors(last_predicted_points[name], mouse_pos)
-            if error1 is not None and error2 is not None:
-                predictor["errors"].append((error1, error2))
-                if len(predictor["errors"]) > ERROR_LIMIT:
-                    predictor["errors"].pop(0)
-                predictor["file"].write(f"{error1}, {error2}\n")
+            for i in range(min(len(predicted_point), len(mouse_pos))):
+                error1, error2 = calculate_errors(last_predicted_points[name][i], mouse_pos[i])
+                if error1 is not None and error2 is not None:
+                    predictor["errors"].append((error1, error2))
+                    if len(predictor["errors"]) > ERROR_LIMIT:
+                        predictor["errors"].pop(0)
+                    predictor["file"].write(f"{error1}, {error2}\n")
 
         if space_bar_pressed and (CONTINUOUS_DETECTION or has_mouse_moved):
             last_predicted_points[name] = predicted_point
@@ -172,13 +171,11 @@ def draw_graphics():
         if DRAW_CURRENT_PREDICTIONS:
             points = recorded_positions[:]
             predicted_points = []
-            for _ in range(NUMBER_OF_PREDICTIONS):
+            for _ in range(NUMBER_OF_PREDICTIONS // predictor["output_size"]):
                 predicted_point = predictor["function"](points)
                 if predicted_point is not None:
-                    predicted_points.append(predicted_point)
-                    if len(points) >= RECORDED_POSITIONS_LIMIT:
-                        points.pop(0)
-                    points.append(predicted_point)
+                    predicted_points.extend(predicted_point)
+                    points.extend(predicted_point)
             if predicted_points and DRAW_TRAJECTORY:
                 draw_trajectory(predicted_points, predictor["color"])
 

@@ -2,19 +2,21 @@ import torch
 import torch.nn as nn
 import os
 
-# Define the neural network model with a variable input size
+# Define the neural network model with a variable input and output size
 class MousePredictor(nn.Module):
-    def __init__(self, input_size):
+    def __init__(self, input_size, output_size=1):
         super(MousePredictor, self).__init__()
+        self.input_size = input_size
+        self.output_size = output_size
         self.fc1 = nn.Linear(input_size * 2, 128)
         self.fc2 = nn.Linear(128, 64)
-        self.fc3 = nn.Linear(64, 2)
+        self.fc3 = nn.Linear(64, output_size * 2)  # Predict multiple points
 
     def forward(self, x):
         x = torch.relu(self.fc1(x))
         x = torch.relu(self.fc2(x))
         x = self.fc3(x)
-        return x
+        return x.view(-1, self.output_size, 2)  # Reshape to (batch_size, output_size, 2)
 
 # Training function
 def train_model(model, data, target, criterion, optimizer):
@@ -36,7 +38,7 @@ def load_model(model, path="model.pth"):
         model.load_state_dict(torch.load(path))
     return model
 
-# Predict the next point
+# Predict the next points
 def predict(model, data):
     model.eval()
     with torch.no_grad():

@@ -28,21 +28,21 @@ def load_data(folder_path, normalize=False, window_size=(1000, 1000)):
     return data, files_used
 
 # Prepare the dataset for training
-def prepare_dataset(data, sequence_length):
+def prepare_dataset(data, sequence_length, output_size):
     inputs = []
     targets = []
-    for i in range(len(data) - sequence_length):
+    for i in range(len(data) - sequence_length - output_size):
         input_seq = data[i:i + sequence_length]
-        target = data[i + sequence_length]
+        target_seq = data[i + sequence_length:i + sequence_length + output_size]
         inputs.append(np.array(input_seq).flatten())
-        targets.append(target)
+        targets.append(np.array(target_seq).flatten())
     return np.array(inputs), np.array(targets)
 
 # Train the model
-def train_offline(data, model, criterion, optimizer, sequence_length, epochs=100):
-    inputs, targets = prepare_dataset(data, sequence_length)
+def train_offline(data, model, criterion, optimizer, sequence_length, output_size, epochs=100):
+    inputs, targets = prepare_dataset(data, sequence_length, output_size)
     inputs = torch.FloatTensor(inputs)
-    targets = torch.FloatTensor(targets)
+    targets = torch.FloatTensor(targets).view(-1, output_size, 2)
 
     start_time = time.time()
     final_loss = None
@@ -62,11 +62,12 @@ def train_offline(data, model, criterion, optimizer, sequence_length, epochs=100
     return len(inputs), training_time, final_loss
 
 # Create a description file for the model
-def create_description_file(sequence_length, description, data_size, training_time, final_loss, model, model_path, files_used):
+def create_description_file(sequence_length, output_size, description, data_size, training_time, final_loss, model, model_path, files_used):
     description_path = model_path.replace('.pth', '_description.txt')
     with open(description_path, 'w') as f:
         f.write(f"Model Name: {os.path.basename(model_path)}\n")
         f.write(f"Sequence Length: {sequence_length}\n")
+        f.write(f"Output Size: {output_size}\n")
         f.write(f"Data Size: {data_size}\n")
         f.write(f"Training Time: {training_time:.2f} seconds\n")
         f.write(f"Final Loss: {final_loss:.4f}\n")
@@ -78,21 +79,25 @@ def create_description_file(sequence_length, description, data_size, training_ti
         f.write(str(model) + "\n")
 
 # Main function to train and save the model
-def main(sequence_length, description, normalize=False):
+def main(sequence_length, output_size, description, normalize=False):
     data, files_used = load_data(data_folder_path, normalize=normalize)
-    model = MousePredictor(sequence_length)
+    model = MousePredictor(sequence_length, output_size)
     criterion = nn.MSELoss()
     optimizer = optim.Adam(model.parameters(), lr=0.001)
-    data_size, training_time, final_loss = train_offline(data, model, criterion, optimizer, sequence_length)
+    data_size, training_time, final_loss = train_offline(data, model, criterion, optimizer, sequence_length, output_size)
     norm_flag = "N" if normalize else "U"
-    model_path = f"{trained_model_path}/L{sequence_length}_{description}_{norm_flag}.pth"
+    model_path = f"{trained_model_path}/L{sequence_length}_{output_size}_{description}_{norm_flag}.pth"
     save_model(model, model_path)
-    create_description_file(sequence_length, description, data_size, training_time, final_loss, model, model_path, files_used)
+    create_description_file(sequence_length, output_size, description, data_size, training_time, final_loss, model, model_path, files_used)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--sequence_length', type=int, default=20, help='Length of input sequence')
+    parser.add_argument('--output_size', type=int, default=1, help='Number of points to predict')
     parser.add_argument('--desc', type=str, default="mix", help='Describe data used to train model')
     parser.add_argument('--normalize', action='store_true', help='Normalize data coordinates to 0.0-1.0 range')
     args = parser.parse_args()
-    main(args.sequence_length, args.desc, args.normalize)
+    main(args.sequence_length, args.output_size, args.desc, args.normalize)
+
+# EXAMPLE
+# python train_model_offline.py --sequence_length 20 --output_size 5 --desc mix --normalize

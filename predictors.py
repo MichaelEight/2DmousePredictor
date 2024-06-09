@@ -20,17 +20,19 @@ def get_random_color(used_colors):
         if color != (255, 255, 255) and color != (0, 0, 0) and color not in used_colors:
             return color
 
-def predictor_delta(points, model, seq_length, normalize=False):
+def predictor_delta(points, model, seq_length, output_size=1, normalize=False):
     if len(points) < seq_length:
         return None
     
-    input_data = np.array(points[-seq_length:])
     if normalize:
-        input_data[:, 0] /= 1000
-        input_data[:, 1] /= 1000
+        input_data = np.array(points[-seq_length:]) / np.array([1000, 1000])
+    else:
+        input_data = np.array(points[-seq_length:])
+    
     input_data = input_data.flatten()
     input_tensor = torch.FloatTensor(input_data).unsqueeze(0)
     prediction = predict(model, input_tensor)
     
-    return tuple(prediction[0].tolist())
-
+    # Reshape the prediction to the desired format
+    prediction = prediction.reshape(-1, 2).tolist()
+    return prediction
