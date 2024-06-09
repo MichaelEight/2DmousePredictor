@@ -1,2 +1,3 @@
 TRAIN MODEL
+python train_model_offline.py --sequence_length 20 --desc mix
 python train_model_offline.py --sequence_length 20 --desc mix --normalize
