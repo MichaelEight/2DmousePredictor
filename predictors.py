@@ -1,6 +1,6 @@
 import numpy as np
 import torch
-from ml_model import predict
+from predictor_model import predict
 import random
 
 # Define colors for different models

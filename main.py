@@ -4,7 +4,7 @@ import os
 import numpy as np
 import torch
 from predictors import predictor_delta, PREDICTOR_COLORS, get_random_color
-from ml_model import MousePredictor, load_model
+from predictor_model import MousePredictor, load_model
 from shape_classifier_model import ShapeClassifier, load_classifier, predict_shape
 import argparse
 
@@ -89,6 +89,7 @@ if not classifier_loaded:
 predictors = {}
 for (seq_length, output_size, model_type, norm_flag), model in models.items():
     color_key = f'delta_{seq_length}'
+    color = (255, 0, 0)
     if color_key in PREDICTOR_COLORS:
         color = PREDICTOR_COLORS[color_key]
     if color in used_colors:

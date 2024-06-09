@@ -3,7 +3,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from ml_model import MousePredictor, save_model
+from predictor_model import MousePredictor, save_model
 import argparse
 import time
 
