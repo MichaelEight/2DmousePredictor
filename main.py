@@ -89,7 +89,9 @@ for (seq_length, output_size, model_type, norm_flag), model in models.items():
     print(f"Loaded model: Sequence Length: {seq_length}, Output Size: {output_size}, Type: {model_type}, Normalized: {normalize}, Color: {color}")
 
 mouse_positions_file = open(os.path.join("data", "mouse_positions.txt"), "w")
+mouse_positions_counter = 0
 
+# Modify calculate_errors function
 def calculate_errors(predicted, actual):
     if predicted is None or actual is None:
         return None, None
@@ -97,8 +99,7 @@ def calculate_errors(predicted, actual):
     error2 = abs(predicted[0] - actual[0]) + abs(predicted[1] - actual[1])
     return error1, error2
 
-mouse_positions_counter = 0
-
+# Modify update_simulation function
 def update_simulation():
     global recorded_positions, last_predicted_points, predictors, past_predictions, update_counters, mouse_positions_counter
 
@@ -135,16 +136,19 @@ def update_simulation():
                 update_counters[name] = 0
 
         if space_bar_pressed and (CONTINUOUS_DETECTION or has_mouse_moved) and last_predicted_points.get(name) is not None:
-            for i in range(min(len(predicted_point), len(mouse_pos))):
-                error1, error2 = calculate_errors(last_predicted_points[name][i], mouse_pos[i])
-                if error1 is not None and error2 is not None:
-                    predictor["errors"].append((error1, error2))
-                    if len(predictor["errors"]) > ERROR_LIMIT:
-                        predictor["errors"].pop(0)
-                    predictor["file"].write(f"{error1}, {error2}\n")
+            num_comparisons = min(len(last_predicted_points[name]), len(mouse_pos))
+            for i in range(num_comparisons):
+                if i < len(last_predicted_points[name]) and len(mouse_pos) > 1:
+                    error1, error2 = calculate_errors(last_predicted_points[name][i], mouse_pos)
+                    if error1 is not None and error2 is not None:
+                        predictor["errors"].append((error1, error2))
+                        if len(predictor["errors"]) > ERROR_LIMIT:
+                            predictor["errors"].pop(0)
+                        predictor["file"].write(f"{error1}, {error2}\n")
 
         if space_bar_pressed and (CONTINUOUS_DETECTION or has_mouse_moved):
-            last_predicted_points[name] = predicted_point
+            last_predicted_points[name] = predicted_points
+
 
 def draw_trajectory(points, color):
     for i in range(1, len(points)):
