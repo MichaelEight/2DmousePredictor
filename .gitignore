@@ -21,3 +21,5 @@ lib64
 /zipped_to_publish
 data_queue/*
 TODO.txt
+build/
+launch.spec
