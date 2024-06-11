@@ -8,8 +8,9 @@ from model_predictor import MousePredictor, load_model
 from model_shape_classifier import ShapeClassifier, load_classifier, predict_shape
 import argparse
 import validate_folders_scheme as vfs
+from validate_folders_scheme import folders as vfs_folders
 
-vfs.ensure_folders_exist()
+vfs.ensure_folders_exist(vfs_folders)
 
 # Initialize Pygame
 pygame.init()
