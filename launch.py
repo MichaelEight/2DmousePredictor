@@ -3,6 +3,10 @@ import subprocess
 import shutil
 import customtkinter as ctk
 from tkinter import messagebox, simpledialog
+import validate_folders_scheme as vfs
+from validate_folders_scheme import folders as vfs_folders
+
+vfs.ensure_folders_exist(vfs_folders)
 
 # Helper functions
 def move_files(selected_files, src_folder, dst_folder):

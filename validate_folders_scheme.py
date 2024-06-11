@@ -6,6 +6,7 @@ folders = [
     "data/errors/",
     "data_classifier/",
     "data_mouse/",
+    "data_queue/",
     "models_to_load/",
     "trained_models/",
     "trained_models/archive/"
