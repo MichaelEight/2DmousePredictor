@@ -1,8 +1,8 @@
 import os
-import tkinter as tk
-from tkinter import filedialog, messagebox, simpledialog
 import subprocess
 import shutil
+import customtkinter as ctk
+from tkinter import messagebox, simpledialog
 
 # Helper functions
 def move_files(selected_files, src_folder, dst_folder):
@@ -36,14 +36,18 @@ class MainWindow:
     def __init__(self, master):
         self.master = master
         master.title("Main Menu")
+        master.geometry("500x300")
+        master.eval('tk::PlaceWindow . center')
 
-        self.start_simulation_button = tk.Button(master, text="Start Simulation", command=self.start_simulation)
+        ctk.CTkLabel(master, text="Mouse Prediction App", font=ctk.CTkFont(size=24, weight="bold")).pack(pady=20)
+
+        self.start_simulation_button = ctk.CTkButton(master, text="Start Simulation", command=self.start_simulation)
         self.start_simulation_button.pack(pady=10)
 
-        self.train_button = tk.Button(master, text="Training", command=self.train)
+        self.train_button = ctk.CTkButton(master, text="Training", command=self.train)
         self.train_button.pack(pady=10)
 
-        self.data_viewer_button = tk.Button(master, text="Data Viewer", command=self.data_viewer)
+        self.data_viewer_button = ctk.CTkButton(master, text="Data Viewer", command=self.data_viewer)
         self.data_viewer_button.pack(pady=10)
 
     def start_simulation(self):
@@ -57,12 +61,12 @@ class MainWindow:
 
 class SimulationWindow:
     def __init__(self, master):
-        self.top = tk.Toplevel(master)
+        self.top = ctk.CTkToplevel(master)
         self.top.title("Start Simulation")
-        self.top.geometry("400x600")  # Set size
-
-        # Center the window
+        self.top.geometry("600x800")
+        self.top.minsize(600, 800)
         self.center_window(self.top)
+        self.top.focus_set()  # Set focus to the new window
 
         trained_files = get_pth_files('trained_models')
         loaded_files = get_pth_files('models_to_load')
@@ -71,25 +75,25 @@ class SimulationWindow:
         self.classifier_files = [f for f in self.all_files if f.startswith('classifier')]
         self.predictor_files = [f for f in self.all_files if not f.startswith('classifier')]
 
-        tk.Label(self.top, text="Select Predictor Models:").pack(pady=5)
+        ctk.CTkLabel(self.top, text="Select Predictor Models:", font=ctk.CTkFont(size=18)).pack(pady=10)
         self.predictor_vars = {}
         for file in self.predictor_files:
-            var = tk.BooleanVar(value=file in loaded_files)
-            chk = tk.Checkbutton(self.top, text=file, variable=var)
-            chk.pack(anchor='w')
+            var = ctk.StringVar(value=file in loaded_files)
+            chk = ctk.CTkCheckBox(self.top, text=file, variable=var)
+            chk.pack(anchor='w', padx=20)
             self.predictor_vars[file] = var
 
-        tk.Label(self.top, text="Select Classifier Model:").pack(pady=5)
-        self.classifier_var = tk.StringVar(value="None")
-        tk.Radiobutton(self.top, text="None", variable=self.classifier_var, value="None").pack(anchor='w')
+        ctk.CTkLabel(self.top, text="Select Classifier Model:", font=ctk.CTkFont(size=18)).pack(pady=10)
+        self.classifier_var = ctk.StringVar(value="None")
+        ctk.CTkRadioButton(self.top, text="None", variable=self.classifier_var, value="None").pack(anchor='w', padx=20)
         for file in self.classifier_files:
             checked = file in loaded_files
-            tk.Radiobutton(self.top, text=file, variable=self.classifier_var, value=file).pack(anchor='w')
+            ctk.CTkRadioButton(self.top, text=file, variable=self.classifier_var, value=file).pack(anchor='w', padx=20)
             if checked:
                 self.classifier_var.set(file)
 
-        self.start_button = tk.Button(self.top, text="Start", command=self.start_simulation)
-        self.start_button.pack(pady=10)
+        self.start_button = ctk.CTkButton(self.top, text="Start", command=self.start_simulation)
+        self.start_button.pack(pady=20)
 
     def center_window(self, window):
         window.update_idletasks()
@@ -123,54 +127,54 @@ class SimulationWindow:
 
 class TrainWindow:
     def __init__(self, master):
-        self.top = tk.Toplevel(master)
+        self.top = ctk.CTkToplevel(master)
         self.top.title("Training")
-        self.top.geometry("500x600")  # Set size
-
-        # Center the window
+        self.top.geometry("600x800")
+        self.top.minsize(600, 800)
         self.center_window(self.top)
+        self.top.focus_set()  # Set focus to the new window
 
         self.data_files = get_txt_files('data_queue')
 
-        tk.Label(self.top, text="Select Data Files:").pack(pady=5)
+        ctk.CTkLabel(self.top, text="Select Data Files:", font=ctk.CTkFont(size=18)).pack(pady=10)
         self.data_vars = {}
         for file in self.data_files:
-            var = tk.BooleanVar()
-            chk = tk.Checkbutton(self.top, text=f"{file} ({count_lines(f'data_queue/{file}')})", variable=var)
-            chk.pack(anchor='w')
+            var = ctk.StringVar()
+            chk = ctk.CTkCheckBox(self.top, text=f"{file} ({count_lines(f'data_queue/{file}')})", variable=var)
+            chk.pack(anchor='w', padx=20)
             self.data_vars[file] = var
 
-        tk.Label(self.top, text="Training Type:").pack(pady=5)
-        self.train_type = tk.StringVar(value="predictor")
-        tk.Radiobutton(self.top, text="Predictor", variable=self.train_type, value="predictor").pack(anchor='w')
-        tk.Radiobutton(self.top, text="Classifier", variable=self.train_type, value="classifier").pack(anchor='w')
+        ctk.CTkLabel(self.top, text="Training Type:", font=ctk.CTkFont(size=18)).pack(pady=10)
+        self.train_type = ctk.StringVar(value="predictor")
+        ctk.CTkRadioButton(self.top, text="Predictor", variable=self.train_type, value="predictor").pack(anchor='w', padx=20)
+        ctk.CTkRadioButton(self.top, text="Classifier", variable=self.train_type, value="classifier").pack(anchor='w', padx=20)
 
-        tk.Label(self.top, text="Hidden Layers:").pack(pady=5)
+        ctk.CTkLabel(self.top, text="Hidden Layers:", font=ctk.CTkFont(size=18)).pack(pady=10)
         self.hidden_layers = []
         for i in range(3):
-            var = tk.StringVar(value="none")
+            var = ctk.StringVar(value="none")
             self.hidden_layers.append(var)
             options = ["none", "2", "4", "8", "16", "32", "64", "128", "256", "512", "1024"]
-            dropdown = tk.OptionMenu(self.top, var, *options)
-            dropdown.pack()
+            dropdown = ctk.CTkComboBox(self.top, values=options, variable=var)
+            dropdown.pack(padx=20, pady=5)
 
-        tk.Label(self.top, text="Input Size:").pack(pady=5)
-        self.input_size = tk.Spinbox(self.top, from_=10, to=200)
-        self.input_size.pack()
+        ctk.CTkLabel(self.top, text="Input Size:", font=ctk.CTkFont(size=18)).pack(pady=10)
+        self.input_size = ctk.CTkEntry(self.top, width=200)
+        self.input_size.pack(pady=5)
 
-        tk.Label(self.top, text="Output Size:").pack(pady=5)
-        self.output_size = tk.Spinbox(self.top, from_=1, to=100)
-        self.output_size.pack()
+        ctk.CTkLabel(self.top, text="Output Size:", font=ctk.CTkFont(size=18)).pack(pady=10)
+        self.output_size = ctk.CTkEntry(self.top, width=200)
+        self.output_size.pack(pady=5)
 
-        tk.Label(self.top, text="Description:").pack(pady=5)
-        self.description = tk.Entry(self.top, width=20)
-        self.description.pack()
+        ctk.CTkLabel(self.top, text="Description:", font=ctk.CTkFont(size=18)).pack(pady=10)
+        self.description = ctk.CTkEntry(self.top, width=200)
+        self.description.pack(pady=5)
 
-        self.normalize = tk.BooleanVar()
-        tk.Checkbutton(self.top, text="Normalize", variable=self.normalize).pack()
+        self.normalize = ctk.StringVar()
+        ctk.CTkCheckBox(self.top, text="Normalize", variable=self.normalize).pack(pady=10)
 
-        self.train_button = tk.Button(self.top, text="Train", command=self.train_model)
-        self.train_button.pack(pady=10)
+        self.train_button = ctk.CTkButton(self.top, text="Train", command=self.train_model)
+        self.train_button.pack(pady=20)
 
     def center_window(self, window):
         window.update_idletasks()
@@ -181,7 +185,7 @@ class TrainWindow:
         window.geometry(f'{width}x{height}+{x}+{y}')
 
     def train_model(self):
-        selected_data = [file for file, var in self.data_vars.items() if var.get()]
+        selected_data = [file for file, var in self.data_vars.items() if var.get() == "1"]
         hidden_layers_str = '-'.join([f"{size.get()}ReLU" for size in self.hidden_layers if size.get() != "none"])
 
         args = [
@@ -212,7 +216,10 @@ class TrainWindow:
             self.top.destroy()
 
 if __name__ == "__main__":
-    root = tk.Tk()
-    root.geometry("400x200")  # Set initial size of the main window
+    ctk.set_appearance_mode("System")  # Modes: "System" (default), "Dark", "Light"
+    ctk.set_default_color_theme("blue")  # Themes: "blue" (default), "green", "dark-blue"
+
+    root = ctk.CTk()
+    root.geometry("500x300")  # Set initial size of the main window
     main_window = MainWindow(root)
     root.mainloop()
