@@ -3,7 +3,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from shape_classifier_model import ShapeClassifier, save_model
+from model_shape_classifier import ShapeClassifier, save_model
 import argparse
 import time
 import validate_folders_scheme as vfs

@@ -4,8 +4,8 @@ import os
 import numpy as np
 import torch
 from predictors import predictor_delta, PREDICTOR_COLORS, get_random_color
-from predictor_model import MousePredictor, load_model
-from shape_classifier_model import ShapeClassifier, load_classifier, predict_shape
+from model_predictor import MousePredictor, load_model
+from model_shape_classifier import ShapeClassifier, load_classifier, predict_shape
 import argparse
 import validate_folders_scheme as vfs
 
