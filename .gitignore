@@ -19,3 +19,5 @@ lib64
 *.pyo
 *.pyc
 /zipped_to_publish
+data_queue/*
+TODO.txt
