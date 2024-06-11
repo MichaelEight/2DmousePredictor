@@ -1,5 +1,8 @@
 import pygame
 import os
+import validate_folders_scheme as vfs
+
+vfs.ensure_folders_exist()
 
 # Initialize Pygame
 pygame.init()
