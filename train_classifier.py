@@ -6,6 +6,9 @@ import torch.optim as optim
 from shape_classifier_model import ShapeClassifier, save_model
 import argparse
 import time
+import validate_folders_scheme as vfs
+
+vfs.ensure_folders_exist()
 
 # Define the path to the data folder
 data_folder_path = 'data_classifier'
