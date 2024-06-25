@@ -1,4 +1,80 @@
-# How to use?
+# Mouse Predictor and Shape Classifier
+Just a simple project. Let's you draw with your mouse and train AI/ML models for shape classification (classifier model) and mouse path prediction based on previous positions (predictor model).
+
+# How to use it?
+
+## Requirements
+
+Install dependencies: ```python pip install numpy torch customtkinter pygame```
+
+## Launching
+**(NEW)** Run `launch.py` for GUI. You should be welcomed with a menu:
+
+![image](https://github.com/MichaelEight/2DmousePredictor/assets/56772277/73d0dc5c-85e7-4453-8656-24d89b6ff51f)
+
+## Start Simulation - Settings
+Click `Start Simulation`. You should see:
+
+![image](https://github.com/MichaelEight/2DmousePredictor/assets/56772277/7328f88c-736f-4b20-93f7-8e381eff5714)
+
+You can select multiple Predictors and a single Classifier... or none.
+
+**Predictor** - model used to predict future path of mouse based on previous positions.
+
+**Naming:** Laa_bb_ccR-ddR-eeR_desc_f.pth, where:
+
+- L - indicator it's Predictor model
+- aa - model input size, so how many points (i.e. (x,y) pairs) are inputted into the model
+- bb - model output size, so how many points are outputted (predicted). RECOMMENDED to keep at 1, because app uses "recursion" to get next points (predicted point is treated as last position, where mouse was and fed back to the model).
+- cc, dd, ee - sizes of hidden layers. Can be set at 0 to skip hidden layer.
+- R - activator function for layer. Currently it's not available to change it in GUI, only via command.
+- desc - short description to keep track, what is this model trained on... or whatever you want
+- f - flag used to indicated if data is normalized (N) or not normalized (U)
+
+**Classifier** - model uesd to classify shapes and display probability of each of them being currently drawn
+
+**Naming:** classifier_aa_bb_ccR-ddR-eeR-desc_f.pth
+
+- classifier - indicator it's Classifier model... duh
+- aa - model input size, so how many points (i.e. (x,y) pairs) are inputted into the model
+- bb - model output size, so how many different shapes are recognized
+- cc, dd, ee - sizes of hidden layers. Can be set at 0 to skip hidden layer.
+- R - activator function for layer. Currently it's not available to change it in GUI, only via command.
+- desc - short description to keep track, what is this model trained on... or whatever you want
+- f - flag used to indicated if data is normalized (N) or not normalized (U)
+
+## Start Simulation - Simulation
+
+After pressing `Start`, you will be moved to the following window:
+
+![image](https://github.com/MichaelEight/2DmousePredictor/assets/56772277/044fc75c-fed3-471a-bad7-a07cf6e117a9)
+
+There you can move around your mouse and draw. You can adjust simulation settings via shortcuts.
+
+### Shortcuts
+
+- O   - toggle current prediction
+- P   - toggle ghost of last prediction
+- N/M - decrease/increase length of mouse path
+- K/L - decrease/increase length of prediction
+- ,/. - decrease/increase FPS (refresh rate)
+- C   - toggle continuous update (FALSE = Update only when mouse moves, TRUE = Update every frame)
+
+### Recommended for training
+
+- choose a shape (circle, square etc.) and stick to it
+- choose a direction (clockwise/anticlockwise) and stick to it
+- The longer you do this, the more data is collected for training
+
+## Start Simulation - Finishing
+
+When pressed ESC, you will be prompted to save collected data (mouse positions) to file. It can be used for training models later on.
+
+![image](https://github.com/MichaelEight/2DmousePredictor/assets/56772277/57102183-96f7-4771-99d7-465ee22d7a1d)
+
+
+
+
 
 (if you don't have any mouse data yet)
 1. Run main.py
