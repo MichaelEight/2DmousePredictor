@@ -9,25 +9,21 @@ from validate_folders_scheme import folders as vfs_folders
 vfs.ensure_folders_exist(vfs_folders)
 
 # Helper functions
-def move_files(selected_files, src_folder, dst_folder):
-    for file in selected_files:
-        src_path = os.path.join('models', src_folder, file)
-        dst_path = os.path.join('models', dst_folder, file)
-        if os.path.exists(src_path):
-            shutil.move(src_path, dst_path)
-
 def get_pth_files(folder):
     return [f for f in os.listdir(folder) if f.endswith('.pth')]
 
 def get_txt_files(folder):
-    return [f for f in os.listdir('data/data_queue') if f.endswith('.txt')]
+    return [f for f in folder if f.endswith('.txt')]
 
 def count_lines(filepath):
     with open(os.path.join('data/data_queue', filepath), 'r') as file:
         return len(file.readlines())
 
-def launch_main():
-    subprocess.run(["python", "src/main.py"])
+def launch_main(selected_models, selected_classifier):
+    args = ["python", "src/main.py", "--models"] + selected_models
+    if selected_classifier:
+        args += ["--classifier", selected_classifier]
+    subprocess.run(args)
 
 def launch_train_predictor(args):
     subprocess.run(["python", "src/train_predictor.py"] + args)
@@ -72,18 +68,15 @@ class SimulationWindow:
         self.center_window(self.top)
         self.top.focus_set()  # Set focus to the new window
 
-        trained_files = get_pth_files('models/trained_models')
-        loaded_files = get_pth_files('models/models_to_load')
-
-        self.all_files = list(set(trained_files + loaded_files))
+        self.all_files = get_pth_files('models/trained_models')
         self.classifier_files = [f for f in self.all_files if f.startswith('classifier')]
         self.predictor_files = [f for f in self.all_files if not f.startswith('classifier')]
 
         ctk.CTkLabel(self.top, text="Select Predictor Models:", font=ctk.CTkFont(size=18)).pack(pady=10)
         self.predictor_vars = {}
         for file in self.predictor_files:
-            var = ctk.StringVar(value=file in loaded_files)
-            chk = ctk.CTkCheckBox(self.top, text=file, variable=var)
+            var = ctk.StringVar(value="0")
+            chk = ctk.CTkCheckBox(self.top, text=file, variable=var, onvalue="1", offvalue="0")
             chk.pack(anchor='w', padx=20)
             self.predictor_vars[file] = var
 
@@ -91,10 +84,7 @@ class SimulationWindow:
         self.classifier_var = ctk.StringVar(value="None")
         ctk.CTkRadioButton(self.top, text="None", variable=self.classifier_var, value="None").pack(anchor='w', padx=20)
         for file in self.classifier_files:
-            checked = file in loaded_files
             ctk.CTkRadioButton(self.top, text=file, variable=self.classifier_var, value=file).pack(anchor='w', padx=20)
-            if checked:
-                self.classifier_var.set(file)
 
         self.start_button = ctk.CTkButton(self.top, text="Start", command=self.start_simulation)
         self.start_button.pack(pady=20)
@@ -108,18 +98,10 @@ class SimulationWindow:
         window.geometry(f'{width}x{height}+{x}+{y}')
 
     def start_simulation(self):
-        selected_predictors = [file for file, var in self.predictor_vars.items() if var.get()]
-        selected_classifier = self.classifier_var.get()
+        selected_predictors = [file for file, var in self.predictor_vars.items() if var.get() == "1"]
+        selected_classifier = self.classifier_var.get() if self.classifier_var.get() != "None" else None
 
-        move_files(selected_predictors, 'models/trained_models', 'models/models_to_load')
-        if selected_classifier != "None":
-            move_files([selected_classifier], 'models/trained_models', 'models/models_to_load')
-
-        for file in os.listdir('models/models_to_load'):
-            if file not in selected_predictors and file != selected_classifier:
-                move_files([file], 'models/models_to_load', 'models/trained_models')
-
-        launch_main()
+        launch_main(selected_predictors, selected_classifier)
         self.ask_save_data()
 
     def ask_save_data(self):

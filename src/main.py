@@ -49,38 +49,38 @@ pygame.display.set_caption("Center point")
 recorded_positions = []
 last_predicted_points = {}
 
-# Check if the models exist in the models_to_load directory and load them
+# Parse command-line arguments for models
 parser = argparse.ArgumentParser()
-parser.add_argument('--models_path', type=str, default='models/models_to_load', help='Path to the directory containing models')
+parser.add_argument('--models', type=str, nargs='*', help='List of predictor models to load')
+parser.add_argument('--classifier', type=str, default=None, help='Classifier model to load')
 args = parser.parse_args()
 
 used_colors = set()
 models = {}
 classifier_loaded = False
+sequence_length = 0
+num_classes = 0
 
-for file in os.listdir(args.models_path):
-    if file.endswith('.pth'):
+if args.models:
+    for file in args.models:
         parts = file.split('_')
-        if file.startswith('L'):
-            seq_length = int(parts[0][1:])  # Extract sequence length from L20
-            output_size = int(parts[1])  # Extract output size
-            model_type = parts[2]
-            norm_flag = parts[3].split('.')[0]
-            normalize = norm_flag == "N"
-            model_path = os.path.join(args.models_path, file)
-            model, hidden_layers = load_model(seq_length, output_size, model_path)
-            models[(seq_length, output_size, model_type, norm_flag)] = model
-        elif file.startswith('classifier'):
-            sequence_length = int(parts[1])
-            num_classes = int(parts[2])
-            hidden_layers_str = parts[3]
-            description = parts[4]
-            norm_flag = parts[5].split('.')[0]
-            normalize = norm_flag == "N"
-            classifier_model_path = os.path.join(args.models_path, file)
-            classifier_model, classifier_hidden_layers, class_map = load_classifier(sequence_length, num_classes, classifier_model_path)
-            classifier_loaded = True
-            print(f"Loaded Classifier: {classifier_model_path}")
+        seq_length = int(parts[0][1:])  # Extract sequence length from L20
+        output_size = int(parts[1])  # Extract output size
+        model_type = parts[2]
+        norm_flag = parts[3].split('.')[0]
+        normalize = norm_flag == "N"
+        model_path = os.path.join('models/trained_models', file)
+        model, hidden_layers = load_model(seq_length, output_size, model_path)
+        models[(seq_length, output_size, model_type, norm_flag)] = model
+
+if args.classifier:
+    classifier_parts = args.classifier.split('_')
+    sequence_length = int(classifier_parts[1])
+    num_classes = int(classifier_parts[2])
+    classifier_model_path = os.path.join('models/trained_models', args.classifier)
+    classifier_model, classifier_hidden_layers, class_map = load_classifier(sequence_length, num_classes, classifier_model_path)
+    classifier_loaded = True
+    print(f"Loaded Classifier: {classifier_model_path}")
 
 if not classifier_loaded:
     print("Classifier model not found.")
