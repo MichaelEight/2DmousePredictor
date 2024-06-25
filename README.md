@@ -1,7 +1,7 @@
 # Mouse Predictor and Shape Classifier
 Just a simple project. Let's you draw with your mouse and train AI/ML models for shape classification (classifier model) and mouse path prediction based on previous positions (predictor model).
 
-# How to use it?
+# Getting Started
 
 ## Requirements
 
