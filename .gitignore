@@ -4,9 +4,9 @@
 /data_classifier/
 /data_queue/
 # Ignore trained models
-/trained_models/*
-/good_models
-/models_to_load/*
+/models/trained_models/*
+/models/good_models
+/models/models_to_load/*
 # Ignore archived files
 /archive
 # Python specific ignores
@@ -30,3 +30,4 @@ lib/
 lib64/
 zipped_to_publish/
 TODO.txt
+tempCodeRunnerFile.py
