@@ -13,7 +13,7 @@ def get_pth_files(folder):
     return [f for f in os.listdir(folder) if f.endswith('.pth')]
 
 def get_txt_files(folder):
-    return [f for f in folder if f.endswith('.txt')]
+    return [f for f in os.listdir(folder) if f.endswith('.txt')]
 
 def count_lines(filepath):
     with open(os.path.join('data/data_queue', filepath), 'r') as file:
@@ -66,7 +66,9 @@ class SimulationWindow:
         self.top.geometry("600x800")
         self.top.minsize(600, 800)
         self.center_window(self.top)
-        self.top.focus_set()  # Set focus to the new window
+        self.top.lift()  # Ensure the new window is on top
+        self.top.attributes("-topmost", True)
+        self.top.focus_force()  # Force focus on the new window
 
         self.all_files = get_pth_files('models/trained_models')
         self.classifier_files = [f for f in self.all_files if f.startswith('classifier')]
@@ -118,9 +120,11 @@ class TrainWindow:
         self.top.geometry("600x800")
         self.top.minsize(600, 800)
         self.center_window(self.top)
-        self.top.focus_set()  # Set focus to the new window
+        self.top.lift()  # Ensure the new window is on top
+        self.top.attributes("-topmost", True)
+        self.top.focus_force()  # Force focus on the new window
 
-        self.data_files = get_txt_files('data_queue')
+        self.data_files = get_txt_files('data/data_queue')  # Corrected path
 
         ctk.CTkLabel(self.top, text="Select Data Files:", font=ctk.CTkFont(size=18)).pack(pady=10)
         self.data_vars = {}
