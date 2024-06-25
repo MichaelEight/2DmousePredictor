@@ -33,14 +33,14 @@ Install dependencies: ```python pip install numpy torch customtkinter pygame```
 ## Launching
 Run `launch.py` for GUI. You should be welcomed with a menu:
 
-![image](https://github.com/MichaelEight/2DmousePredictor/assets/56772277/73d0dc5c-85e7-4453-8656-24d89b6ff51f)
+<img src="https://github.com/MichaelEight/2DmousePredictor/assets/56772277/73d0dc5c-85e7-4453-8656-24d89b6ff51f" width="50%" height="50%" />
 
 ## Start Simulation
 
 ### Settings
 Click `Start Simulation`. You should see:
 
-![image](https://github.com/MichaelEight/2DmousePredictor/assets/56772277/7328f88c-736f-4b20-93f7-8e381eff5714)
+<img src="https://github.com/MichaelEight/2DmousePredictor/assets/56772277/7328f88c-736f-4b20-93f7-8e381eff5714" width="50%" height="50%" />
 
 You can select multiple Predictors and a single Classifier... or none.
 
@@ -72,7 +72,7 @@ You can select multiple Predictors and a single Classifier... or none.
 
 After pressing `Start`, you will be moved to the following window:
 
-![image](https://github.com/MichaelEight/2DmousePredictor/assets/56772277/044fc75c-fed3-471a-bad7-a07cf6e117a9)
+<img src="https://github.com/MichaelEight/2DmousePredictor/assets/56772277/044fc75c-fed3-471a-bad7-a07cf6e117a9" width="50%" height="50%" />
 
 There you can move around your mouse and draw. You can adjust simulation settings via shortcuts.
 
@@ -95,14 +95,15 @@ There you can move around your mouse and draw. You can adjust simulation setting
 
 When pressed ESC, you will be prompted to save collected data (mouse positions) to file. It can be used for training models later on.
 
-![image](https://github.com/MichaelEight/2DmousePredictor/assets/56772277/57102183-96f7-4771-99d7-465ee22d7a1d)
+<img src="https://github.com/MichaelEight/2DmousePredictor/assets/56772277/57102183-96f7-4771-99d7-465ee22d7a1d" width="25%" height="25%" />
+
 
 ## Training
 
 ### Settings
 Click `Start Simulation`. You should see:
 
-![image](https://github.com/MichaelEight/2DmousePredictor/assets/56772277/c5b435ba-fec3-4f85-b90f-8e57760353a2)
+<img src="https://github.com/MichaelEight/2DmousePredictor/assets/56772277/c5b435ba-fec3-4f85-b90f-8e57760353a2" width="50%" height="50%" />
 
 #### Data Files
 These are files saved from the simulation.
@@ -127,7 +128,7 @@ Normalize - Toggle data normalization. Instead of inputs being 0 <= x <= 1000 (w
 
 Training process will be run in the console (it's a Python process after all). You will be informed at the end:
 
-![image](https://github.com/MichaelEight/2DmousePredictor/assets/56772277/4e8fa94d-4b5b-4228-998a-10be5ca6f839)
+<img src="https://github.com/MichaelEight/2DmousePredictor/assets/56772277/4e8fa94d-4b5b-4228-998a-10be5ca6f839" width="25%" height="25%" />
 
 You should be able to use the model right away in the simulation.
 
@@ -136,10 +137,9 @@ You should be able to use the model right away in the simulation.
 
 As the name suggests, it loads all data files and allows you to view them. It shows the amount of points stored in the file. You can press left/right arrows to move to the next file.
 
-![image](https://github.com/MichaelEight/2DmousePredictor/assets/56772277/7493a5f7-f79a-47c2-97fd-362fbe98ffaa)
+<img src="https://github.com/MichaelEight/2DmousePredictor/assets/56772277/7493a5f7-f79a-47c2-97fd-362fbe98ffaa" width="50%" height="50%" />
 
-![image](https://github.com/MichaelEight/2DmousePredictor/assets/56772277/355d8256-cb04-4633-bacd-090369edc305)
-
+<img src="https://github.com/MichaelEight/2DmousePredictor/assets/56772277/355d8256-cb04-4633-bacd-090369edc305" width="50%" height="50%" />
 
 ## Manual Operations
 
