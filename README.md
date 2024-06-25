@@ -1,5 +1,7 @@
+
 # Mouse Predictor and Shape Classifier
-Just a simple project. It lets you draw shapes with your mouse and then train AI/ML models for shape classification (classifier model) and/or mouse path prediction based on previous positions (predictor model).
+
+This project allows you to draw shapes with your mouse and then train AI/ML models for shape classification and/or mouse path prediction based on previous positions.
 
 ## Table of Contents
 
@@ -8,11 +10,11 @@ Just a simple project. It lets you draw shapes with your mouse and then train AI
   - [Launching](#launching)
 - [Start Simulation](#start-simulation)
   - [Settings](#settings)
-    - [Predictor definition](#predictor-definition)
-    - [Classifier definition](#classifier-definition)
+    - [Predictor Definition](#predictor-definition)
+    - [Classifier Definition](#classifier-definition)
   - [Simulation](#simulation)
     - [Shortcuts](#shortcuts)
-    - [Recommended for training](#recommended-for-training)
+    - [Recommended for Training](#recommended-for-training)
   - [Finishing](#finishing)
 - [Training](#training)
   - [Settings](#settings)
@@ -21,160 +23,179 @@ Just a simple project. It lets you draw shapes with your mouse and then train AI
   - [Training Process](#training-process)
 - [Data Viewer](#data-viewer)
 - [Manual Operations](#manual-operations)
+  - [Training Predictor](#training-predictor)
+  - [Training Classifier](#training-classifier)
 
+## Getting Started
 
+### Requirements
 
-# Getting Started
+Install dependencies:
 
-## Requirements
+```sh
+pip install numpy torch customtkinter pygame
+```
 
-Install dependencies: ```python pip install numpy torch customtkinter pygame```
+### Launching
 
-## Launching
-Run `launch.py` for GUI. You should be welcomed with a menu:
+Run `launch.py` for GUI. You should see the menu:
 
 <img src="https://github.com/MichaelEight/2DmousePredictor/assets/56772277/73d0dc5c-85e7-4453-8656-24d89b6ff51f" width="50%" height="50%" />
 
 ## Start Simulation
 
 ### Settings
-Click `Start Simulation`. You should see:
+
+Click **Start Simulation**. You should see:
 
 <img src="https://github.com/MichaelEight/2DmousePredictor/assets/56772277/7328f88c-736f-4b20-93f7-8e381eff5714" width="50%" height="50%" />
 
-You can select multiple Predictors and a single Classifier... or none.
+You can select multiple Predictors and a single Classifier or none.
 
-**Predictor** - model used to predict future path of mouse based on previous positions.
+#### Predictor Definition
 
-**Naming:** Laa_bb_ccR-ddR-eeR_desc_f.pth, where:
+Predictor models predict the future path of the mouse based on previous positions.
 
-- L - indicator it's Predictor model
-- aa - model input size, so how many points (i.e. (x,y) pairs) are inputted into the model
-- bb - model output size, so how many points are outputted (predicted). RECOMMENDED to keep at 1, because app uses "recursion" to get next points (predicted point is treated as last position, where mouse was and fed back to the model).
-- cc, dd, ee - sizes of hidden layers. Can be set at 0 to skip hidden layer.
-- R - activator function for layer. Currently it's not available to change it in GUI, only via command.
-- desc - short description to keep track, what is this model trained on... or whatever you want
-- f - flag used to indicated if data is normalized (N) or not normalized (U)
+**Naming Convention:** `Laa_bb_ccR-ddR-eeR_desc_f.pth`
 
-**Classifier** - model uesd to classify shapes and display probability of each of them being currently drawn
+- `L`: Indicator it's a Predictor model
+- `aa`: Model input size (number of points `(x, y)` pairs)
+- `bb`: Model output size (recommended to keep at 1 for recursion)
+- `cc`, `dd`, `ee`: Sizes of hidden layers (set to 0 to skip)
+- `R`: Activation function for layer (modifiable via command line)
+- `desc`: Description of what the model is trained on
+- `f`: Flag indicating if data is normalized (`N` for normalized, `U` for not)
 
-**Naming:** classifier_aa_bb_ccR-ddR-eeR-desc_f.pth
+#### Classifier Definition
 
-- classifier - indicator it's Classifier model... duh
-- aa - model input size, so how many points (i.e. (x,y) pairs) are inputted into the model
-- bb - model output size, so how many different shapes are recognized
-- cc, dd, ee - sizes of hidden layers. Can be set at 0 to skip hidden layer.
-- R - activator function for layer. Currently it's not available to change it in GUI, only via command.
-- desc - short description to keep track, what is this model trained on... or whatever you want
-- f - flag used to indicated if data is normalized (N) or not normalized (U)
+Classifier models classify shapes and display the probability of each shape being currently drawn.
+
+**Naming Convention:** `classifier_aa_bb_ccR-ddR-eeR-desc_f.pth`
+
+- `classifier`: Indicator it's a Classifier model
+- `aa`: Model input size (number of points `(x, y)` pairs)
+- `bb`: Model output size (number of recognized shapes)
+- `cc`, `dd`, `ee`: Sizes of hidden layers (set to 0 to skip)
+- `R`: Activation function for layer (modifiable via command line)
+- `desc`: Description of what the model is trained on
+- `f`: Flag indicating if data is normalized (`N` for normalized, `U` for not)
 
 ### Simulation
 
-After pressing `Start`, you will be moved to the following window:
+After pressing **Start**, you will see:
 
 <img src="https://github.com/MichaelEight/2DmousePredictor/assets/56772277/044fc75c-fed3-471a-bad7-a07cf6e117a9" width="50%" height="50%" />
 
-There you can move around your mouse and draw. You can adjust simulation settings via shortcuts.
+You can move your mouse to draw and adjust simulation settings via shortcuts.
 
 #### Shortcuts
 
-- O   - toggle current prediction
-- P   - toggle ghost of last prediction
-- N/M - decrease/increase length of mouse path
-- K/L - decrease/increase length of prediction
-- ,/. - decrease/increase FPS (refresh rate)
-- C   - toggle continuous update (FALSE = Update only when mouse moves, TRUE = Update every frame)
+- `O`: Toggle current prediction
+- `P`: Toggle ghost of last prediction
+- `N/M`: Decrease/increase length of mouse path
+- `K/L`: Decrease/increase length of prediction
+- `,/.`: Decrease/increase FPS (refresh rate)
+- `C`: Toggle continuous update (update every frame if `TRUE`, only when mouse moves if `FALSE`)
 
-#### Recommended for training
+#### Recommended for Training
 
-- choose a shape (circle, square etc.) and stick to it
-- choose a direction (clockwise/anticlockwise) and stick to it
-- The longer you do this, the more data is collected for training
+- Choose a shape (circle, square, etc.) and stick to it.
+- Choose a direction (clockwise/anticlockwise) and stick to it.
+- The longer you do this, the more data is collected for training.
 
 ### Finishing
 
-When pressed ESC, you will be prompted to save collected data (mouse positions) to file. It can be used for training models later on.
+Press `ESC` to save collected data (mouse positions) to a file for later training.
 
 <img src="https://github.com/MichaelEight/2DmousePredictor/assets/56772277/57102183-96f7-4771-99d7-465ee22d7a1d" width="25%" height="25%" />
-
 
 ## Training
 
 ### Settings
-Click `Start Simulation`. You should see:
+
+Click **Start Simulation**. You should see:
 
 <img src="https://github.com/MichaelEight/2DmousePredictor/assets/56772277/c5b435ba-fec3-4f85-b90f-8e57760353a2" width="50%" height="50%" />
 
 #### Data Files
+
 These are files saved from the simulation.
 
-**IMPORTANT! Correct data naming is important for classifier!** It should always starts with the name of classified object, followed by a '_'. Example: `square_somethingsomething.txt`. Classifier's output size is determined by amount of unique object names. So if you select: square_1, square_2, circle_abc_123, circle_1; you will have just 2 unique objects: "square" and "circle". Data naming for predictor doesn't matter, however it's a good practice to make the names meaningful. 
+**Important:** Correct data naming is crucial for the classifier! The name should start with the classified object name followed by an underscore (`_`). For example: `square_somethingsomething.txt`. The classifier's output size is determined by the number of unique object names. For example, if you have `square_1`, `square_2`, `circle_abc_123`, `circle_1`, you will have two unique objects: "square" and "circle".
 
 #### Model Parameters
-Training Type - Select if you want to train Predictor Model or Classifier Model.
 
-Hidden Layers - Select sizes (amount of nodes) in each hidden layer.
-
-Input Size - How many points (so (x,y) pairs) should be taken as an input.
-
-Output Size - (Predictor only) How many points should be predicted by default (**TIP:** for little amount of data keep the output = 1. Tested on 20k points or less)
-
-Description - Just a short description, which will be inserted to the file name, so you can keep track e.g. on what data was the model trained.
-
-Normalize - Toggle data normalization. Instead of inputs being 0 <= x <= 1000 (window size), they will be packed into range 0.0 <= x <= 1.0.
-
+- **Training Type:** Select if you want to train a Predictor Model or Classifier Model.
+- **Hidden Layers:** Select sizes (number of nodes) in each hidden layer.
+- **Input Size:** Number of points (so `(x, y)` pairs) taken as input.
+- **Output Size:** (Predictor only) Number of points to be predicted by default. **Tip:** For a small amount of data, keep the output = 1.
+- **Description:** A short description for the file name to track what data the model was trained on.
+- **Normalize:** Toggle data normalization. Instead of inputs being `0 <= x <= 1000` (window size), they will be in the range `0.0 <= x <= 1.0`.
 
 ### Training Process
 
-Training process will be run in the console (it's a Python process after all). You will be informed at the end:
+The training process will run in the console (as a Python process). You will be informed when it finishes:
 
 <img src="https://github.com/MichaelEight/2DmousePredictor/assets/56772277/4e8fa94d-4b5b-4228-998a-10be5ca6f839" width="25%" height="25%" />
 
-You should be able to use the model right away in the simulation.
-
+The model can be used immediately in the simulation.
 
 ## Data Viewer
 
-As the name suggests, it loads all data files and allows you to view them. It shows the amount of points stored in the file. You can press left/right arrows to move to the next file.
+The Data Viewer loads all data files and allows you to view them. It shows the number of points stored in each file. Use the left/right arrows to navigate through the files.
 
 <img src="https://github.com/MichaelEight/2DmousePredictor/assets/56772277/7493a5f7-f79a-47c2-97fd-362fbe98ffaa" width="50%" height="50%" />
-
 <img src="https://github.com/MichaelEight/2DmousePredictor/assets/56772277/355d8256-cb04-4633-bacd-090369edc305" width="50%" height="50%" />
 
 ## Manual Operations
 
 ### Training Predictor
 
-  `python train_predictor.py`  
-  
-  Arguments:
-  - `--sequence_length`: Model input, how many points are used for prediction (default: 20).
-  - `--output_size`: Number of points to predict (default: 1).
-  NOTE: if the app is set to display 1 predictions and model is trained for 5, it will not show up until you increase the number of displayed predictions!
-  - `--hidden_layers`: Configuration of hidden layers (default: "64ReLU-32ReLU").
-  - `--desc`: Short description to see, what is this model (default: "mix").
-  - `--normalize`: Normalize data coordinates to the 0.0-1.0 range (optional).
-  - Example:
-    
-    `python train_predictor.py --sequence_length 20 --output_size 1 --hidden_layers "64ReLU-32ReLU" --desc mix --normalize`
-    
-  - Default (Recommended) Command:
-  
-    `python train_predictor.py --sequence_length 20 --output_size 1 --hidden_layers "64ReLU-32ReLU" --desc mix`
+```sh
+python train_predictor.py
+```
+
+**Arguments:**
+
+- `--sequence_length`: Model input, number of points used for prediction (default: 20).
+- `--output_size`: Number of points to predict (default: 1). **Note:** If the app displays 1 prediction and the model is trained for 5, it will not show up until you increase the number of displayed predictions.
+- `--hidden_layers`: Configuration of hidden layers (default: "64ReLU-32ReLU").
+- `--desc`: Short description for the model (default: "mix").
+- `--normalize`: Normalize data coordinates to the 0.0-1.0 range (optional).
+
+**Example:**
+
+```sh
+python train_predictor.py --sequence_length 20 --output_size 1 --hidden_layers "64ReLU-32ReLU" --desc mix --normalize
+```
+
+**Default (Recommended) Command:**
+
+```sh
+python train_predictor.py --sequence_length 20 --output_size 1 --hidden_layers "64ReLU-32ReLU" --desc mix
+```
 
 ### Training Classifier
 
-  `python train_classifier.py`
-  
-  Arguments:
-  - `--sequence_length`: Model input, how many points are used for prediction (default: 20).
-  - `--hidden_layers`: Configuration of hidden layers (default: "64ReLU-32ReLU").
-  - `--desc`: Short description to see, what data was used (default: "CirclesSquares").
-  - `--normalize`: Normalize data coordinates to the 0.0-1.0 range (optional).
-  - Example:
-    
-    `python train_classifier.py --sequence_length 20 --hidden_layers "64ReLU-32ReLU" --desc CirclesSquares --normalize`
-    
-  - Default (Recommended) Command:
-  
-    `python train_classifier.py --sequence_length 20 --hidden_layers "64ReLU-32ReLU" --desc CirclesSquares`
+```sh
+python train_classifier.py
+```
+
+**Arguments:**
+
+- `--sequence_length`: Model input, number of points used for prediction (default: 20).
+- `--hidden_layers`: Configuration of hidden layers (default: "64ReLU-32ReLU").
+- `--desc`: Short description for the model (default: "CirclesSquares").
+- `--normalize`: Normalize data coordinates to the 0.0-1.0 range (optional).
+
+**Example:**
+
+```sh
+python train_classifier.py --sequence_length 20 --hidden_layers "64ReLU-32ReLU" --desc CirclesSquares --normalize
+```
+
+**Default (Recommended) Command:**
+
+```sh
+python train_classifier.py --sequence_length 20 --hidden_layers "64ReLU-32ReLU" --desc CirclesSquares
+```
