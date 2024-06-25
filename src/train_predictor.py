@@ -12,8 +12,8 @@ from validate_folders_scheme import folders as vfs_folders
 vfs.ensure_folders_exist(vfs_folders)
 
 # Define the path to the data folder
-data_folder_path = 'data_mouse'
-trained_model_path = 'trained_models'
+data_folder_path = 'data/data_mouse'
+trained_model_path = 'models/trained_models'
 
 # Load the recorded data from all files in the folder
 def load_data(folder_path, normalize=False, window_size=(1000, 1000)):
@@ -24,12 +24,17 @@ def load_data(folder_path, normalize=False, window_size=(1000, 1000)):
         files_used.append(file_name)
         with open(file_path, 'r') as file:
             for line in file:
-                x, y = map(int, line.strip().split(','))
-                if normalize:
-                    x /= window_size[0]
-                    y /= window_size[1]
-                data.append((x, y))
+                try:
+                    x, y = map(int, line.strip().split(','))
+                    if normalize:
+                        x /= window_size[0]
+                        y /= window_size[1]
+                    data.append((x, y))
+                except ValueError:
+                    # Skip lines that do not contain valid coordinate pairs
+                    continue
     return data, files_used
+
 
 # Prepare the dataset for training
 def prepare_dataset(data, sequence_length, output_size):

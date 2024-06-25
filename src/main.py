@@ -43,10 +43,6 @@ space_bar_pressed = False
 predicted_shape = "Not loaded"
 class_map = {}
 
-# Create data directory if not exists
-if not os.path.exists("data"):
-    os.makedirs("data")
-
 # Initialize variables
 WINDOW = pygame.display.set_mode(WINDOW_SIZE)
 pygame.display.set_caption("Center point")
@@ -55,7 +51,7 @@ last_predicted_points = {}
 
 # Check if the models exist in the models_to_load directory and load them
 parser = argparse.ArgumentParser()
-parser.add_argument('--models_path', type=str, default='models_to_load', help='Path to the directory containing models')
+parser.add_argument('--models_path', type=str, default='models/models_to_load', help='Path to the directory containing models')
 args = parser.parse_args()
 
 used_colors = set()
@@ -105,14 +101,12 @@ for (seq_length, output_size, model_type, norm_flag), model in models.items():
         "function": lambda points, model=model, seq_length=seq_length, output_size=output_size, normalize=normalize: predictor_delta(points, model, seq_length, output_size, normalize) if model else None,
         "color": color,
         "errors": [],
-        "file": open(os.path.join("data/errors/", f"errors_{predictor_key}.txt"), "w"),
         "output_size": output_size
     }
     past_predictions[predictor_key] = []
     update_counters[predictor_key] = 0
     print(f"Loaded Predictor: Sequence Length: {seq_length}, Output Size: {output_size}, Type: {model_type}, Normalized: {normalize}, Color: {color}")
 
-mouse_positions_file = open(os.path.join("data", "mouse_positions.txt"), "w")
 mouse_positions_counter = 0
 
 # Modify calculate_errors function
@@ -131,7 +125,6 @@ def update_simulation():
     has_mouse_moved = mouse_pos != recorded_positions[-1] if recorded_positions else False
 
     if (CONTINUOUS_DETECTION or has_mouse_moved) and space_bar_pressed:
-        mouse_positions_file.write(f"{mouse_pos[0]}, {mouse_pos[1]}\n")
         mouse_positions_counter += 1
 
     if space_bar_pressed and (CONTINUOUS_DETECTION or has_mouse_moved):
@@ -168,7 +161,6 @@ def update_simulation():
                         predictor["errors"].append((error1, error2))
                         if len(predictor["errors"]) > ERROR_LIMIT:
                             predictor["errors"].pop(0)
-                        predictor["file"].write(f"{error1}, {error2}\n")
 
         if space_bar_pressed and (CONTINUOUS_DETECTION or has_mouse_moved):
             last_predicted_points[name] = predicted_points
@@ -202,7 +194,7 @@ def draw_graphics():
             faded_color = (color[0] // 2, color[1] // 2, color[2] // 2)  # 50% opacity
             for predictions in prediction_set:
                 draw_trajectory(predictions, faded_color)
-
+                
     for name, predictor in predictors.items():
         if DRAW_CURRENT_PREDICTIONS:
             points = recorded_positions[:]
@@ -290,16 +282,10 @@ def handle_events():
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
-            for predictor in predictors.values():
-                predictor["file"].close()
-            mouse_positions_file.close()
             pygame.quit()
             quit()
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
-                for predictor in predictors.values():
-                    predictor["file"].close()
-                mouse_positions_file.close()
                 pygame.quit()
                 quit()
             elif event.key == pygame.K_c:
@@ -349,13 +335,6 @@ def main():
         space_bar_pressed = False
     else:
         space_bar_pressed = True
-
-    # Write settings to settings file
-    with open(os.path.join("data", "settings.txt"), "w") as settings_file:
-        settings_str = f"WINDOW_SIZE: {WINDOW_SIZE}, RECORDED_POSITIONS_LIMIT: {RECORDED_POSITIONS_LIMIT}, FPS_LIMIT: {FPS_LIMIT}, CONTINUOUS_DETECTION: {CONTINUOUS_DETECTION}, NUMBER_OF_PREDICTIONS: {NUMBER_OF_PREDICTIONS}"
-        settings_file.write(settings_str + "\n")
-        for name, predictor in predictors.items():
-            settings_file.write(f"{name}: {predictor['color']}\n")
 
     while True:
         handle_events()

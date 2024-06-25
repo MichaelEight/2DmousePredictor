@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import os
+import numpy
 
 # Define the neural network model with a variable input, output size, and hidden layers
 class MousePredictor(nn.Module):

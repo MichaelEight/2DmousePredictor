@@ -1,0 +1,22 @@
+Model Name: L10_1_2R__U.pth
+Sequence Length: 10
+Output Size: 1
+Hidden Layers: [(2, 'ReLU')]
+Data Size: 15965
+Training Time: 0.31 seconds
+Final Loss: 297411.7812
+Description: 
+Data Files Used:
+  - circle_1.txt
+  - circle_aclk.txt
+  - circle_clk.txt
+  - settings.txt
+  - square_anticlock.txt
+Model Structure:
+MousePredictor(
+  (model): Sequential(
+    (0): Linear(in_features=20, out_features=2, bias=True)
+    (1): ReLU()
+    (2): Linear(in_features=2, out_features=2, bias=True)
+  )
+)

@@ -11,8 +11,8 @@ vfs.ensure_folders_exist(vfs_folders)
 # Helper functions
 def move_files(selected_files, src_folder, dst_folder):
     for file in selected_files:
-        src_path = os.path.join(src_folder, file)
-        dst_path = os.path.join(dst_folder, file)
+        src_path = os.path.join('models', src_folder, file)
+        dst_path = os.path.join('models', dst_folder, file)
         if os.path.exists(src_path):
             shutil.move(src_path, dst_path)
 
@@ -20,21 +20,21 @@ def get_pth_files(folder):
     return [f for f in os.listdir(folder) if f.endswith('.pth')]
 
 def get_txt_files(folder):
-    return [f for f in os.listdir(folder) if f.endswith('.txt')]
+    return [f for f in os.listdir('data/data_queue') if f.endswith('.txt')]
 
 def count_lines(filepath):
-    with open(filepath, 'r') as file:
+    with open(os.path.join('data/data_queue', filepath), 'r') as file:
         return len(file.readlines())
 
 def launch_main():
-    subprocess.run(["python", "main.py"])
+    subprocess.run(["python", "src/main.py"])
 
 def launch_train_predictor(args):
-    subprocess.run(["python", "train_predictor.py"] + args)
+    subprocess.run(["python", "src/train_predictor.py"] + args)
 
 def launch_train_classifier(args):
-    subprocess.run(["python", "train_classifier.py"] + args)
-
+    subprocess.run(["python", "src/train_classifier.py"] + args)
+    
 # Main window
 class MainWindow:
     def __init__(self, master):
@@ -61,7 +61,7 @@ class MainWindow:
         self.train_window = TrainWindow(self.master)
 
     def data_viewer(self):
-        subprocess.run(["python", "mouse_data_viewer.py"])
+        subprocess.run(["python", "src/mouse_data_viewer.py"])
 
 class SimulationWindow:
     def __init__(self, master):
@@ -72,8 +72,8 @@ class SimulationWindow:
         self.center_window(self.top)
         self.top.focus_set()  # Set focus to the new window
 
-        trained_files = get_pth_files('trained_models')
-        loaded_files = get_pth_files('models_to_load')
+        trained_files = get_pth_files('models/trained_models')
+        loaded_files = get_pth_files('models/models_to_load')
 
         self.all_files = list(set(trained_files + loaded_files))
         self.classifier_files = [f for f in self.all_files if f.startswith('classifier')]
@@ -111,13 +111,13 @@ class SimulationWindow:
         selected_predictors = [file for file, var in self.predictor_vars.items() if var.get()]
         selected_classifier = self.classifier_var.get()
 
-        move_files(selected_predictors, 'trained_models', 'models_to_load')
+        move_files(selected_predictors, 'models/trained_models', 'models/models_to_load')
         if selected_classifier != "None":
-            move_files([selected_classifier], 'trained_models', 'models_to_load')
+            move_files([selected_classifier], 'models/trained_models', 'models/models_to_load')
 
-        for file in os.listdir('models_to_load'):
+        for file in os.listdir('models/models_to_load'):
             if file not in selected_predictors and file != selected_classifier:
-                move_files([file], 'models_to_load', 'trained_models')
+                move_files([file], 'models/models_to_load', 'models/trained_models')
 
         launch_main()
         self.ask_save_data()
@@ -126,7 +126,7 @@ class SimulationWindow:
         if messagebox.askyesno("Save Data", "Do you want to save mouse data?"):
             new_name = simpledialog.askstring("Input", "Enter new file name:", parent=self.top)
             if new_name:
-                shutil.move('data/mouse_positions.txt', f'data_queue/{new_name}.txt')
+                shutil.move('data/data_mouse/mouse_positions.txt', f'data/data_queue/{new_name}.txt')
         self.top.destroy()
 
 class TrainWindow:
@@ -144,7 +144,7 @@ class TrainWindow:
         self.data_vars = {}
         for file in self.data_files:
             var = ctk.StringVar()
-            chk = ctk.CTkCheckBox(self.top, text=f"{file} ({count_lines(f'data_queue/{file}')})", variable=var)
+            chk = ctk.CTkCheckBox(self.top, text=f"{file} ({count_lines(file)})", variable=var)
             chk.pack(anchor='w', padx=20)
             self.data_vars[file] = var
 

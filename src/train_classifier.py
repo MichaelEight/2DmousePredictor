@@ -12,8 +12,8 @@ from validate_folders_scheme import folders as vfs_folders
 vfs.ensure_folders_exist(vfs_folders)
 
 # Define the path to the data folder
-data_folder_path = 'data_classifier'
-trained_model_path = 'trained_models'
+data_folder_path = 'data/data_classifier'
+trained_model_path = 'models/trained_models'
 
 # Save the classifier model
 def save_model(model, hidden_layers, path="model.pth", class_map=None):

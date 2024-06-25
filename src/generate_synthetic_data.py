@@ -1,7 +1,6 @@
 import numpy as np
 import random
 import math
-import os
 
 # Settings
 WINDOW_SIZE = (1000, 1000)

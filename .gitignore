@@ -1,25 +1,32 @@
+# Ignore data files
 /data
+/data_mouse/
+/data_classifier/
+/data_queue/
+# Ignore trained models
 /trained_models/*
 /good_models
 /models_to_load/*
-/data_mouse/*
+# Ignore archived files
 /archive
+# Python specific ignores
 __pycache__/
 *.py[cod]
-.installed.cfg
-bin
-develop-eggs
-dist
-downloads
-eggs
-parts
-src/*.egg-info
-lib
-lib64
 *.pyo
 *.pyc
-/zipped_to_publish
-data_queue/*
-TODO.txt
+# Build directories and files
 build/
-launch.spec
+dist/
+*.spec
+# Miscellaneous
+.installed.cfg
+bin/
+develop-eggs/
+downloads/
+eggs/
+parts/
+src/*.egg-info
+lib/
+lib64/
+zipped_to_publish/
+TODO.txt

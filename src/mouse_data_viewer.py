@@ -19,35 +19,25 @@ TEXT_PADDING = 10
 FPS_LIMIT = 30
 
 # Load data files
-data_folder_path = 'data_mouse'
-data_files = os.listdir(data_folder_path)
-data_files = sorted(data_files)
+def load_data_points(data_folder_path):
+    data_files = os.listdir(data_folder_path)
+    data_files = sorted(data_files)
+    all_data_points = []
+    for file_name in data_files:
+        file_path = os.path.join(data_folder_path, file_name)
+        data_points = []
+        with open(file_path, 'r') as file:
+            for line in file:
+                try:
+                    x, y = map(int, line.strip().split(','))
+                    data_points.append((x, y))
+                except ValueError:
+                    continue  # Skip lines that do not contain valid coordinate pairs
+        all_data_points.append((file_name, data_points))
+    return all_data_points
 
-# Load data from all files
-all_data_points = []
-for file_name in data_files:
-    file_path = os.path.join(data_folder_path, file_name)
-    data_points = []
-    with open(file_path, 'r') as file:
-        for line in file:
-            x, y = map(int, line.strip().split(','))
-            data_points.append((x, y))
-    all_data_points.append((file_name, data_points))
-
-# Load data files
-data_folder_path = 'data_classifier'
-data_files = os.listdir(data_folder_path)
-data_files = sorted(data_files)
-
-# Load data from all files
-for file_name in data_files:
-    file_path = os.path.join(data_folder_path, file_name)
-    data_points = []
-    with open(file_path, 'r') as file:
-        for line in file:
-            x, y = map(int, line.strip().split(','))
-            data_points.append((x, y))
-    all_data_points.append((file_name, data_points))
+all_data_points = load_data_points('data/data_mouse')
+all_data_points += load_data_points('data/data_classifier')
 
 # Initialize variables
 current_index = 0
@@ -95,8 +85,13 @@ def main():
                 elif event.key == pygame.K_LEFT:
                     current_index = (current_index - 1) % len(all_data_points)
 
-        file_name, data_points = all_data_points[current_index]
-        draw_data_points(WINDOW, data_points, file_name)
+        if all_data_points:
+            file_name, data_points = all_data_points[current_index]
+            draw_data_points(WINDOW, data_points, file_name)
+        else:
+            font = pygame.font.Font(None, 36)
+            draw_text_with_background(WINDOW, "No data available", font, TEXT_COLOR, TEXT_BACKGROUND_COLOR, (TEXT_PADDING, TEXT_PADDING))
+            pygame.display.update()
         clock.tick(FPS_LIMIT)
 
 if __name__ == "__main__":
