@@ -20,6 +20,7 @@ Just a simple project. It lets you draw shapes with your mouse and then train AI
     - [Model Parameters](#model-parameters)
   - [Training Process](#training-process)
 - [Data Viewer](#data-viewer)
+- [Manual Operations](#manual-operations)
 
 
 
