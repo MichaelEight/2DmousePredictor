@@ -2,11 +2,18 @@ import os
 import subprocess
 import shutil
 import customtkinter as ctk
-from tkinter import messagebox, simpledialog
+from tkinter import messagebox, simpledialog, StringVar, IntVar
+
 import validate_folders_scheme as vfs
 from validate_folders_scheme import folders as vfs_folders
 
 vfs.ensure_folders_exist(vfs_folders)
+
+# Constants for input validation
+INPUT_SIZE_MIN = 1
+INPUT_SIZE_MAX = 999
+OUTPUT_SIZE_MIN = 1
+OUTPUT_SIZE_MAX = 999
 
 # Helper functions
 def get_pth_files(folder):
@@ -31,6 +38,13 @@ def launch_train_predictor(args):
 def launch_train_classifier(args):
     subprocess.run(["python", "src/train_classifier.py"] + args)
     
+def validate_integer_input(new_value, min_value, max_value):
+    if new_value.isdigit():
+        value = int(new_value)
+        if min_value <= value <= max_value:
+            return True
+    return False
+
 # Main window
 class MainWindow:
     def __init__(self, master):
@@ -77,13 +91,13 @@ class SimulationWindow:
         ctk.CTkLabel(self.top, text="Select Predictor Models:", font=ctk.CTkFont(size=18)).pack(pady=10)
         self.predictor_vars = {}
         for file in self.predictor_files:
-            var = ctk.StringVar(value="0")
+            var = StringVar(value="0")
             chk = ctk.CTkCheckBox(self.top, text=file, variable=var, onvalue="1", offvalue="0")
             chk.pack(anchor='w', padx=20)
             self.predictor_vars[file] = var
 
         ctk.CTkLabel(self.top, text="Select Classifier Model:", font=ctk.CTkFont(size=18)).pack(pady=10)
-        self.classifier_var = ctk.StringVar(value="None")
+        self.classifier_var = StringVar(value="None")
         ctk.CTkRadioButton(self.top, text="None", variable=self.classifier_var, value="None").pack(anchor='w', padx=20)
         for file in self.classifier_files:
             ctk.CTkRadioButton(self.top, text=file, variable=self.classifier_var, value=file).pack(anchor='w', padx=20)
@@ -131,38 +145,43 @@ class TrainWindow:
         ctk.CTkLabel(self.top, text="Select Data Files:", font=ctk.CTkFont(size=18)).pack(pady=10)
         self.data_vars = {}
         for file in self.data_files:
-            var = ctk.StringVar()
+            var = StringVar()
             chk = ctk.CTkCheckBox(self.top, text=f"{file} ({count_lines(file)})", variable=var)
             chk.pack(anchor='w', padx=20)
             self.data_vars[file] = var
 
         ctk.CTkLabel(self.top, text="Training Type:", font=ctk.CTkFont(size=18)).pack(pady=10)
-        self.train_type = ctk.StringVar(value="predictor")
+        self.train_type = StringVar(value="predictor")
         ctk.CTkRadioButton(self.top, text="Predictor", variable=self.train_type, value="predictor").pack(anchor='w', padx=20)
         ctk.CTkRadioButton(self.top, text="Classifier", variable=self.train_type, value="classifier").pack(anchor='w', padx=20)
 
         ctk.CTkLabel(self.top, text="Hidden Layers:", font=ctk.CTkFont(size=18)).pack(pady=10)
         self.hidden_layers = []
+        default_hidden_layers = ["64", "32", "none"]
         for i in range(3):
-            var = ctk.StringVar(value="none")
+            var = StringVar(value=default_hidden_layers[i])
             self.hidden_layers.append(var)
             options = ["none", "2", "4", "8", "16", "32", "64", "128", "256", "512", "1024"]
             dropdown = ctk.CTkComboBox(self.top, values=options, variable=var)
             dropdown.pack(padx=20, pady=5)
 
+        validate_cmd = (self.top.register(lambda new_value: validate_integer_input(new_value, INPUT_SIZE_MIN, INPUT_SIZE_MAX)), "%P")
+
         ctk.CTkLabel(self.top, text="Input Size:", font=ctk.CTkFont(size=18)).pack(pady=10)
-        self.input_size = ctk.CTkEntry(self.top, width=200)
+        self.input_size = ctk.CTkEntry(self.top, width=200, validate="key", validatecommand=validate_cmd)
+        self.input_size.insert(0, "20")
         self.input_size.pack(pady=5)
 
         ctk.CTkLabel(self.top, text="Output Size:", font=ctk.CTkFont(size=18)).pack(pady=10)
-        self.output_size = ctk.CTkEntry(self.top, width=200)
+        self.output_size = ctk.CTkEntry(self.top, width=200, validate="key", validatecommand=validate_cmd)
+        self.output_size.insert(0, "1")
         self.output_size.pack(pady=5)
 
         ctk.CTkLabel(self.top, text="Description:", font=ctk.CTkFont(size=18)).pack(pady=10)
         self.description = ctk.CTkEntry(self.top, width=200)
         self.description.pack(pady=5)
 
-        self.normalize = ctk.StringVar()
+        self.normalize = StringVar()
         ctk.CTkCheckBox(self.top, text="Normalize", variable=self.normalize).pack(pady=10)
 
         self.train_button = ctk.CTkButton(self.top, text="Train", command=self.train_model)
