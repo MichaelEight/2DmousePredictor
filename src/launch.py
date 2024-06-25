@@ -17,7 +17,7 @@ OUTPUT_SIZE_MAX = 999
 
 # Current version and author information
 CURRENT_VERSION = "1.0.0"
-AUTHOR = "MichaelEight"
+AUTHOR = "Your Name"
 
 # Helper functions
 def get_pth_files(folder):
@@ -30,18 +30,29 @@ def count_lines(filepath):
     with open(os.path.join('data/data_queue', filepath), 'r') as file:
         return len(file.readlines())
 
-def launch_main(selected_models, selected_classifier):
-    args = ["python", "src/main.py", "--models"] + selected_models
+def clear_mouse_positions_file():
+    with open('data/data_mouse/mouse_positions.txt', 'w') as file:
+        file.truncate(0)
+
+def append_mouse_position(position):
+    with open('data/data_mouse/mouse_positions.txt', 'a') as file:
+        file.write(f"{position[0]},{position[1]}\n")
+
+def launch_main(models_path, selected_models, selected_classifier):
+    args = ["python", "src/main.py", "--models_path", models_path]
+    if selected_models:
+        args += ["--models"] + selected_models
     if selected_classifier:
         args += ["--classifier", selected_classifier]
-    subprocess.run(args)
+    process = subprocess.Popen(args)
+    return process
 
 def launch_train_predictor(args):
-    subprocess.run(["python", "src/train_predictor.py"] + args)
+    subprocess.Popen(["python", "src/train_predictor.py"] + args)
 
 def launch_train_classifier(args):
-    subprocess.run(["python", "src/train_classifier.py"] + args)
-    
+    subprocess.Popen(["python", "src/train_classifier.py"] + args)
+
 def validate_integer_input(new_value, min_value, max_value):
     if new_value.isdigit():
         value = int(new_value)
@@ -78,7 +89,7 @@ class MainWindow:
         self.train_window = TrainWindow(self.master)
 
     def data_viewer(self):
-        subprocess.run(["python", "src/mouse_data_viewer.py"])
+        subprocess.Popen(["python", "src/mouse_data_viewer.py"])
 
     def open_about(self):
         self.about_window = AboutWindow(self.master)
@@ -90,7 +101,6 @@ class AboutWindow:
         self.top.geometry("300x200")
         self.center_window(self.top)
         self.top.lift()  # Ensure the new window is on top
-        self.top.attributes("-topmost", True)
         self.top.focus_force()  # Force focus on the new window
 
         ctk.CTkLabel(self.top, text="About", font=ctk.CTkFont(size=18)).pack(pady=10)
@@ -117,6 +127,8 @@ class SimulationWindow:
         self.top.lift()  # Ensure the new window is on top
         self.top.attributes("-topmost", True)
         self.top.focus_force()  # Force focus on the new window
+
+        self.top.bind("<Escape>", lambda e: self.close_window())  # Bind ESC to close
 
         self.all_files = get_pth_files('models/trained_models')
         self.classifier_files = [f for f in self.all_files if f.startswith('classifier')]
@@ -150,17 +162,38 @@ class SimulationWindow:
         window.geometry(f'{width}x{height}+{x}+{y}')
 
     def start_simulation(self):
+        clear_mouse_positions_file()  # Clear the file at the start of the simulation
+
         selected_predictors = [file for file, var in self.predictor_vars.items() if var.get() == "1"]
         selected_classifier = self.classifier_var.get() if self.classifier_var.get() != "None" else None
 
-        launch_main(selected_predictors, selected_classifier)
-        self.ask_save_data()
+        process = launch_main('models/models_to_load', selected_predictors, selected_classifier)
+        self.top.attributes("-topmost", False)  # Remove the always-on-top attribute
+
+        self.top.withdraw()  # Hide the settings window while the simulation is running
+        self.top.after(100, self.check_simulation, process)
+
+    def check_simulation(self, process):
+        retcode = process.poll()
+        if retcode is not None:
+            self.top.deiconify()  # Show the settings window again
+            self.ask_save_data()
+        else:
+            self.top.after(100, self.check_simulation, process)
 
     def ask_save_data(self):
         if messagebox.askyesno("Save Data", "Do you want to save mouse data?"):
             new_name = simpledialog.askstring("Input", "Enter new file name:", parent=self.top)
             if new_name:
-                shutil.move('data/data_mouse/mouse_positions.txt', f'data/data_queue/{new_name}.txt')
+                src_file = 'data/data_mouse/mouse_positions.txt'
+                dst_file = f'data/data_queue/{new_name}.txt'
+                if os.path.exists(src_file):
+                    shutil.move(src_file, dst_file)
+                else:
+                    messagebox.showerror("File Not Found", f"File '{src_file}' not found. Data could not be saved.")
+        self.close_window()
+
+    def close_window(self):
         self.top.destroy()
 
 class TrainWindow:
@@ -173,6 +206,8 @@ class TrainWindow:
         self.top.lift()  # Ensure the new window is on top
         self.top.attributes("-topmost", True)
         self.top.focus_force()  # Force focus on the new window
+
+        self.top.bind("<Escape>", lambda e: self.close_window())  # Bind ESC to close
 
         self.data_files = get_txt_files('data/data_queue')  # Corrected path
 
@@ -260,7 +295,10 @@ class TrainWindow:
                 self.top.destroy()
                 TrainWindow(self.master)
         else:
-            self.top.destroy()
+            self.close_window()
+
+    def close_window(self):
+        self.top.destroy()
 
 if __name__ == "__main__":
     ctk.set_appearance_mode("System")  # Modes: "System" (default), "Dark", "Light"

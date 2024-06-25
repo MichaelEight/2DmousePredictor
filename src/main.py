@@ -12,6 +12,10 @@ from validate_folders_scheme import folders as vfs_folders
 
 vfs.ensure_folders_exist(vfs_folders)
 
+def append_mouse_position(position):
+    with open('data/data_mouse/mouse_positions.txt', 'a') as file:
+        file.write(f"{position[0]},{position[1]}\n")
+
 # Initialize Pygame
 pygame.init()
 
@@ -49,38 +53,38 @@ pygame.display.set_caption("Center point")
 recorded_positions = []
 last_predicted_points = {}
 
-# Parse command-line arguments for models
+# Check if the models exist in the models_to_load directory and load them
 parser = argparse.ArgumentParser()
-parser.add_argument('--models', type=str, nargs='*', help='List of predictor models to load')
-parser.add_argument('--classifier', type=str, default=None, help='Classifier model to load')
+parser.add_argument('--models_path', type=str, default='models/models_to_load', help='Path to the directory containing models')
 args = parser.parse_args()
 
 used_colors = set()
 models = {}
 classifier_loaded = False
-sequence_length = 0
-num_classes = 0
 
-if args.models:
-    for file in args.models:
+for file in os.listdir(args.models_path):
+    if file.endswith('.pth'):
         parts = file.split('_')
-        seq_length = int(parts[0][1:])  # Extract sequence length from L20
-        output_size = int(parts[1])  # Extract output size
-        model_type = parts[2]
-        norm_flag = parts[3].split('.')[0]
-        normalize = norm_flag == "N"
-        model_path = os.path.join('models/trained_models', file)
-        model, hidden_layers = load_model(seq_length, output_size, model_path)
-        models[(seq_length, output_size, model_type, norm_flag)] = model
-
-if args.classifier:
-    classifier_parts = args.classifier.split('_')
-    sequence_length = int(classifier_parts[1])
-    num_classes = int(classifier_parts[2])
-    classifier_model_path = os.path.join('models/trained_models', args.classifier)
-    classifier_model, classifier_hidden_layers, class_map = load_classifier(sequence_length, num_classes, classifier_model_path)
-    classifier_loaded = True
-    print(f"Loaded Classifier: {classifier_model_path}")
+        if file.startswith('L'):
+            seq_length = int(parts[0][1:])  # Extract sequence length from L20
+            output_size = int(parts[1])  # Extract output size
+            model_type = parts[2]
+            norm_flag = parts[3].split('.')[0]
+            normalize = norm_flag == "N"
+            model_path = os.path.join(args.models_path, file)
+            model, hidden_layers = load_model(seq_length, output_size, model_path)
+            models[(seq_length, output_size, model_type, norm_flag)] = model
+        elif file.startswith('classifier'):
+            sequence_length = int(parts[1])
+            num_classes = int(parts[2])
+            hidden_layers_str = parts[3]
+            description = parts[4]
+            norm_flag = parts[5].split('.')[0]
+            normalize = norm_flag == "N"
+            classifier_model_path = os.path.join(args.models_path, file)
+            classifier_model, classifier_hidden_layers, class_map = load_classifier(sequence_length, num_classes, classifier_model_path)
+            classifier_loaded = True
+            print(f"Loaded Classifier: {classifier_model_path}")
 
 if not classifier_loaded:
     print("Classifier model not found.")
@@ -129,6 +133,7 @@ def update_simulation():
 
     if space_bar_pressed and (CONTINUOUS_DETECTION or has_mouse_moved):
         recorded_positions.append(mouse_pos)
+        append_mouse_position(mouse_pos)  # Save the new position to file
     else:
         if not recorded_positions:
             recorded_positions.append(mouse_pos)
