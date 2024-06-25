@@ -48,10 +48,12 @@ def launch_main(models_path, selected_models, selected_classifier):
     return process
 
 def launch_train_predictor(args):
-    subprocess.Popen(["python", "src/train_predictor.py"] + args)
+    process = subprocess.Popen(["python", "src/train_predictor.py"] + args)
+    return process
 
 def launch_train_classifier(args):
-    subprocess.Popen(["python", "src/train_classifier.py"] + args)
+    process = subprocess.Popen(["python", "src/train_classifier.py"] + args)
+    return process
 
 def validate_integer_input(new_value, min_value, max_value):
     if new_value.isdigit():
@@ -253,7 +255,7 @@ class TrainWindow:
         self.normalize = StringVar()
         ctk.CTkCheckBox(self.top, text="Normalize", variable=self.normalize).pack(pady=10)
 
-        self.train_button = ctk.CTkButton(self.top, text="Train", command=self.train_model)
+        self.train_button = ctk.CTkButton(self.top, text="Train", command=self.start_training)
         self.train_button.pack(pady=20)
 
     def center_window(self, window):
@@ -266,25 +268,39 @@ class TrainWindow:
         y = (screen_height // 2) - (height // 2)
         window.geometry(f'{width}x{height}+{x}+{y}')
 
-    def train_model(self):
+    def start_training(self):
         selected_data = [file for file, var in self.data_vars.items() if var.get() == "1"]
         hidden_layers_str = '-'.join([f"{size.get()}ReLU" for size in self.hidden_layers if size.get() != "none"])
 
-        args = [
+        self.args = [
             '--sequence_length', self.input_size.get(),
             '--hidden_layers', hidden_layers_str,
             '--desc', self.description.get(),
         ]
         if self.normalize.get():
-            args.append('--normalize')
+            self.args.append('--normalize')
 
         if self.train_type.get() == 'predictor':
-            args.extend(['--output_size', self.output_size.get()])
-            launch_train_predictor(args)
+            self.args.extend(['--output_size', self.output_size.get()])
+            process = launch_train_predictor(self.args)
         else:
-            launch_train_classifier(args)
+            process = launch_train_classifier(self.args)
 
-        model_name = f"L{self.input_size.get()}_{self.output_size.get()}_{hidden_layers_str}_{self.description.get()}_{'N' if self.normalize.get() else 'U'}.pth"
+        self.top.attributes("-topmost", False)  # Remove the always-on-top attribute
+
+        self.top.withdraw()  # Hide the settings window while training is running
+        self.top.after(100, self.check_training, process)
+
+    def check_training(self, process):
+        retcode = process.poll()
+        if retcode is not None:
+            self.top.deiconify()  # Show the settings window again
+            self.save_model()
+        else:
+            self.top.after(100, self.check_training, process)
+
+    def save_model(self):
+        model_name = f"L{self.input_size.get()}_{self.output_size.get()}_{'-'.join([hl.get() for hl in self.hidden_layers if hl.get() != 'none'])}_{self.description.get()}_{'N' if self.normalize.get() else 'U'}.pth"
         messagebox.showinfo("Training Complete", f"Model saved as {model_name}")
 
         if messagebox.askyesno("Continue", "Do you want to train another model?"):
