@@ -2,7 +2,7 @@ import os
 import subprocess
 import shutil
 import customtkinter as ctk
-from tkinter import messagebox, simpledialog, StringVar, IntVar
+from tkinter import messagebox, simpledialog, StringVar
 
 import validate_folders_scheme as vfs
 from validate_folders_scheme import folders as vfs_folders
@@ -14,6 +14,10 @@ INPUT_SIZE_MIN = 1
 INPUT_SIZE_MAX = 999
 OUTPUT_SIZE_MIN = 1
 OUTPUT_SIZE_MAX = 999
+
+# Current version and author information
+CURRENT_VERSION = "1.0.0"
+AUTHOR = "MichaelEight"
 
 # Helper functions
 def get_pth_files(folder):
@@ -64,6 +68,9 @@ class MainWindow:
         self.data_viewer_button = ctk.CTkButton(master, text="Data Viewer", command=self.data_viewer)
         self.data_viewer_button.pack(pady=10)
 
+        self.about_button = ctk.CTkButton(master, text="About", command=self.open_about)
+        self.about_button.pack(pady=10)
+
     def start_simulation(self):
         self.simulation_window = SimulationWindow(self.master)
 
@@ -72,6 +79,33 @@ class MainWindow:
 
     def data_viewer(self):
         subprocess.run(["python", "src/mouse_data_viewer.py"])
+
+    def open_about(self):
+        self.about_window = AboutWindow(self.master)
+
+class AboutWindow:
+    def __init__(self, master):
+        self.top = ctk.CTkToplevel(master)
+        self.top.title("About")
+        self.top.geometry("300x200")
+        self.center_window(self.top)
+        self.top.lift()  # Ensure the new window is on top
+        self.top.attributes("-topmost", True)
+        self.top.focus_force()  # Force focus on the new window
+
+        ctk.CTkLabel(self.top, text="About", font=ctk.CTkFont(size=18)).pack(pady=10)
+        ctk.CTkLabel(self.top, text=f"Author: {AUTHOR}", font=ctk.CTkFont(size=14)).pack(pady=10)
+        ctk.CTkLabel(self.top, text=f"Version: {CURRENT_VERSION}", font=ctk.CTkFont(size=14)).pack(pady=10)
+
+    def center_window(self, window):
+        window.update_idletasks()
+        width = window.winfo_width()
+        height = window.winfo_height()
+        screen_width = window.winfo_screenwidth()
+        screen_height = window.winfo_screenheight()
+        x = (screen_width // 2) - (width // 2)
+        y = (screen_height // 2) - (height // 2)
+        window.geometry(f'{width}x{height}+{x}+{y}')
 
 class SimulationWindow:
     def __init__(self, master):
