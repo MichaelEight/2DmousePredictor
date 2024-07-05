@@ -17,7 +17,7 @@ OUTPUT_SIZE_MAX = 999
 
 # Current version and author information
 CURRENT_VERSION = "1.0.0"
-AUTHOR = "Your Name"
+AUTHOR = "Michael Eight"
 
 # Helper functions
 def get_pth_files(folder):
