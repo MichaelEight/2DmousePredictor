@@ -1,20 +1,16 @@
-import pygame
-import math
-import os
-import numpy as np
-import torch
-from predictors import predictor_delta, PREDICTOR_COLORS, get_random_color
-from model_predictor import MousePredictor, load_model
-from model_shape_classifier import ShapeClassifier, load_classifier, predict_shape
 import argparse
+import os
+import torch
+import numpy as np
+import pygame
+from predictors import predictor_delta, PREDICTOR_COLORS, get_random_color
+from model_predictor import load_model
+from model_shape_classifier import load_classifier, predict_shape
 import validate_folders_scheme as vfs
 from validate_folders_scheme import folders as vfs_folders
+import math
 
 vfs.ensure_folders_exist(vfs_folders)
-
-def append_mouse_position(position):
-    with open('data/data_mouse/mouse_positions.txt', 'a') as file:
-        file.write(f"{position[0]},{position[1]}\n")
 
 # Initialize Pygame
 pygame.init()
@@ -57,6 +53,9 @@ last_predicted_points = {}
 parser = argparse.ArgumentParser()
 parser.add_argument('--models_path', type=str, default='models/models_to_load', help='Path to the directory containing models')
 args = parser.parse_args()
+
+if not os.path.exists(args.models_path):
+    raise FileNotFoundError(f"The specified path does not exist: {args.models_path}")
 
 used_colors = set()
 models = {}
@@ -120,6 +119,11 @@ def calculate_errors(predicted, actual):
     error1 = math.sqrt((predicted[0] - actual[0]) ** 2 + (predicted[1] - actual[1]) ** 2)
     error2 = abs(predicted[0] - actual[0]) + abs(predicted[1] - actual[1])
     return error1, error2
+
+def append_mouse_position(position):
+    with open('data/data_mouse/mouse_positions.txt', 'a') as file:
+        file.write(f"{position[0]},{position[1]}\n")
+
 
 # Modify update_simulation function
 def update_simulation():
@@ -261,6 +265,7 @@ def render_text():
 
     if classifier_loaded and probabilities:
         shape_names = [k for k, v in sorted(class_map.items(), key=lambda item: item[1])]
+
         for shape_name in shape_names:
             idx = class_map[shape_name]
             prob = probabilities[idx]

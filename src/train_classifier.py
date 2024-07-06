@@ -20,12 +20,13 @@ def save_model(model, hidden_layers, path="model.pth", class_map=None):
     checkpoint = {
         'model_state_dict': model.state_dict(),
         'hidden_layers': hidden_layers,
-        'class_map': class_map
+        'class_map': class_map,
+        'type_of_input': model.type_of_input
     }
     torch.save(checkpoint, path)
 
 # Load the recorded data from all files in the folder
-def load_data(folder_path, normalize=False, window_size=(1000, 1000)):
+def load_data(folder_path, normalize=False, window_size=(1000, 1000), type_of_input='positional'):
     data = []
     labels = []
     files_used = []
@@ -44,11 +45,12 @@ def load_data(folder_path, normalize=False, window_size=(1000, 1000)):
             sequence = []
             for line in file:
                 x, y = map(int, line.strip().split(','))
-                if normalize:
-                    x /= window_size[0]
-                    y /= window_size[1]
                 sequence.append((x, y))
-            data.append(sequence)
+            if type_of_input == 'vector':
+                vectors = [(sequence[i][0] - sequence[i - 1][0], sequence[i][1] - sequence[i - 1][1]) for i in range(1, len(sequence))]
+                data.append(vectors)
+            else:
+                data.append(sequence)
             labels.append(class_map[class_name])
     num_classes = len(class_map)
     return data, labels, files_used, class_map, num_classes
@@ -113,15 +115,16 @@ def hidden_layers_to_str(hidden_layers):
     return '-'.join([f"{size}{activation[0].upper()}" for size, activation in hidden_layers])
 
 # Main function to train and save the model
-def main(sequence_length, hidden_layers, description, normalize=False):
-    data, labels, files_used, class_map, num_classes = load_data(data_folder_path, normalize=normalize)
-    model = ShapeClassifier(sequence_length, num_classes, hidden_layers)
+def main(sequence_length, hidden_layers, description, normalize=False, type_of_input='positional'):
+    data, labels, files_used, class_map, num_classes = load_data(data_folder_path, normalize=normalize, type_of_input=type_of_input)
+    model = ShapeClassifier(sequence_length, num_classes, hidden_layers, type_of_input)
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=0.001)
     data_size, training_time, final_loss = train_classifier(data, labels, model, criterion, optimizer, sequence_length, epochs=100)
     norm_flag = "N" if normalize else "U"
+    input_type_flag = "VEC" if type_of_input == 'vector' else "POS"
     hidden_layers_str = hidden_layers_to_str(hidden_layers)
-    model_path = f"{trained_model_path}/classifier_{sequence_length}_{num_classes}_{hidden_layers_str}_{description}_{norm_flag}.pth"
+    model_path = f"{trained_model_path}/classifier_{sequence_length}_{num_classes}_{hidden_layers_str}_{description}_{norm_flag}_{input_type_flag}.pth"
     save_model(model, hidden_layers, model_path, class_map=class_map)
     create_description_file(sequence_length, num_classes, hidden_layers, description, data_size, training_time, final_loss, model, model_path, files_used, class_map)
 
@@ -131,6 +134,7 @@ if __name__ == "__main__":
     parser.add_argument('--hidden_layers', type=str, default="64ReLU-32ReLU", help='Hidden layers configuration')
     parser.add_argument('--desc', type=str, default="shapes", help='Describe data used to train model')
     parser.add_argument('--normalize', action='store_true', help='Normalize data coordinates to 0.0-1.0 range')
+    parser.add_argument('--type_of_input', type=str, default='positional', choices=['positional', 'vector'], help='Type of input data: positional or vector')
     args = parser.parse_args()
 
     # Parse hidden layers
@@ -139,4 +143,4 @@ if __name__ == "__main__":
         size, activation = int(hl[:-4]), hl[-4:]
         hidden_layers.append((size, activation))
 
-    main(args.sequence_length, hidden_layers, args.desc, args.normalize)
+    main(args.sequence_length, hidden_layers, args.desc, args.normalize, args.type_of_input)

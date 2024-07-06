@@ -16,7 +16,7 @@ OUTPUT_SIZE_MIN = 1
 OUTPUT_SIZE_MAX = 999
 
 # Current version and author information
-CURRENT_VERSION = "1.0.0"
+CURRENT_VERSION = "2.0.0"
 AUTHOR = "Michael Eight"
 
 # Helper functions
@@ -198,6 +198,40 @@ class SimulationWindow:
     def close_window(self):
         self.top.destroy()
 
+# Main window
+class MainWindow:
+    def __init__(self, master):
+        self.master = master
+        master.title("Main Menu")
+        master.geometry("500x300")
+        master.eval('tk::PlaceWindow . center')
+
+        ctk.CTkLabel(master, text="Mouse Prediction App", font=ctk.CTkFont(size=24, weight="bold")).pack(pady=20)
+
+        self.start_simulation_button = ctk.CTkButton(master, text="Start Simulation", command=self.start_simulation)
+        self.start_simulation_button.pack(pady=10)
+
+        self.train_button = ctk.CTkButton(master, text="Training", command=self.train)
+        self.train_button.pack(pady=10)
+
+        self.data_viewer_button = ctk.CTkButton(master, text="Data Viewer", command=self.data_viewer)
+        self.data_viewer_button.pack(pady=10)
+
+        self.about_button = ctk.CTkButton(master, text="About", command=self.open_about)
+        self.about_button.pack(pady=10)
+
+    def start_simulation(self):
+        self.simulation_window = SimulationWindow(self.master)
+
+    def train(self):
+        self.train_window = TrainWindow(self.master)
+
+    def data_viewer(self):
+        subprocess.Popen(["python", "src/mouse_data_viewer.py"])
+
+    def open_about(self):
+        self.about_window = AboutWindow(self.master)
+
 class TrainWindow:
     def __init__(self, master):
         self.top = ctk.CTkToplevel(master)
@@ -255,6 +289,11 @@ class TrainWindow:
         self.normalize = StringVar()
         ctk.CTkCheckBox(self.top, text="Normalize", variable=self.normalize).pack(pady=10)
 
+        ctk.CTkLabel(self.top, text="Input Type:", font=ctk.CTkFont(size=18)).pack(pady=10)
+        self.input_type = StringVar(value="positional")
+        ctk.CTkRadioButton(self.top, text="Positional", variable=self.input_type, value="positional").pack(anchor='w', padx=20)
+        ctk.CTkRadioButton(self.top, text="Vector", variable=self.input_type, value="vector").pack(anchor='w', padx=20)
+
         self.train_button = ctk.CTkButton(self.top, text="Train", command=self.start_training)
         self.train_button.pack(pady=20)
 
@@ -276,6 +315,7 @@ class TrainWindow:
             '--sequence_length', self.input_size.get(),
             '--hidden_layers', hidden_layers_str,
             '--desc', self.description.get(),
+            '--type_of_input', self.input_type.get()
         ]
         if self.normalize.get():
             self.args.append('--normalize')
@@ -300,7 +340,8 @@ class TrainWindow:
             self.top.after(100, self.check_training, process)
 
     def save_model(self):
-        model_name = f"L{self.input_size.get()}_{self.output_size.get()}_{'-'.join([hl.get() for hl in self.hidden_layers if hl.get() != 'none'])}_{self.description.get()}_{'N' if self.normalize.get() else 'U'}.pth"
+        input_type_flag = "VEC" if self.input_type.get() == 'vector' else "POS"
+        model_name = f"L{self.input_size.get()}_{self.output_size.get()}_{'-'.join([hl.get() for hl in self.hidden_layers if hl.get() != 'none'])}_{self.description.get()}_{'N' if self.normalize.get() else 'U'}_{input_type_flag}.pth"
         messagebox.showinfo("Training Complete", f"Model saved as {model_name}")
 
         if messagebox.askyesno("Continue", "Do you want to train another model?"):
